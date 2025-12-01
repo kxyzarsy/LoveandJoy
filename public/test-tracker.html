@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户操作记录脚本测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #008CBA;
+        }
+        button.secondary:hover {
+            background-color: #007B9E;
+        }
+        button.danger {
+            background-color: #f44336;
+        }
+        button.danger:hover {
+            background-color: #da190b;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .log-container {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-entry.info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        .log-entry.success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        .log-entry.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .log-entry.warning {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+        .control-panel {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .demo-content {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .demo-item {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 用户操作记录脚本测试</h1>
+    
+    <div class="container">
+        <h2>💡 测试说明</h2>
+        <p>本页面用于测试用户操作记录脚本的功能。脚本会记录您在本页面上的所有操作，包括点击、右键、双击和键盘输入等。</p>
+        <p>请按照以下步骤进行测试：</p>
+        <ol>
+            <li>打开浏览器控制台（按 F12 或 Ctrl+Shift+I）</li>
+            <li>在控制台中输入 <code>userOperationTracker.start()</code> 开始记录</li>
+            <li>在本页面上进行各种操作（点击按钮、输入文本等）</li>
+            <li>在控制台中输入 <code>userOperationTracker.stop()</code> 停止记录</li>
+            <li>在控制台中输入 <code>userOperationTracker.exportData()</code> 导出操作数据</li>
+            <li>在控制台中输入 <code>userOperationTracker.playback()</code> 回放操作</li>
+            <li>在控制台中输入 <code>userOperationTracker.destroy()</code> 销毁脚本</li>
+        </ol>
+    </div>
+    
+    <div class="control-panel">
+        <h2>🎮 控制面板</h2>
+        <button onclick="window.userOperationTracker.start()">开始记录</button>
+        <button onclick="window.userOperationTracker.stop()">停止记录</button>
+        <button onclick="window.userOperationTracker.exportData()">导出数据</button>
+        <button onclick="window.userOperationTracker.playback()">回放操作</button>
+        <button onclick="window.userOperationTracker.clearData()">清除数据</button>
+        <button onclick="window.userOperationTracker.destroy()">销毁脚本</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🖱️ 鼠标操作测试</h2>
+        <div class="demo-content">
+            <div class="demo-item">
+                <h3>1. 点击测试</h3>
+                <button id="btn1" class="btn btn-primary">按钮 1</button>
+                <button id="btn2" class="btn btn-secondary">按钮 2</button>
+                <button id="btn3" class="btn btn-danger">按钮 3</button>
+            </div>
+            
+            <div class="demo-item">
+                <h3>2. 右键测试</h3>
+                <div style="width: 200px; height: 100px; background-color: #e3f2fd; padding: 10px; border-radius: 4px; cursor: pointer;">
+                    在这个区域右键点击
+                </div>
+            </div>
+            
+            <div class="demo-item">
+                <h3>3. 双击测试</h3>
+                <div style="width: 200px; height: 100px; background-color: #e8f5e8; padding: 10px; border-radius: 4px; cursor: pointer;">
+                    在这个区域双击
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>⌨️ 键盘操作测试</h2>
+        <div class="demo-content">
+            <div class="demo-item">
+                <h3>1. 文本输入测试</h3>
+                <label for="text-input">输入文本：</label>
+                <input type="text" id="text-input" placeholder="请输入一些文本...">
+            </div>
+            
+            <div class="demo-item">
+                <h3>2. 多行文本测试</h3>
+                <label for="textarea">输入多行文本：</label>
+                <textarea id="textarea" rows="4" placeholder="请输入多行文本..."></textarea>
+            </div>
+            
+            <div class="demo-item">
+                <h3>3. 键盘快捷键测试</h3>
+                <p>在文本框中尝试使用以下快捷键：</p>
+                <ul>
+                    <li>Ctrl+C - 复制</li>
+                    <li>Ctrl+V - 粘贴</li>
+                    <li>Ctrl+A - 全选</li>
+                    <li>Ctrl+Z - 撤销</li>
+                    <li>Enter - 回车</li>
+                    <li>Tab - 制表符</li>
+                    <li>方向键 - 上下左右</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📝 动态内容测试</h2>
+        <div class="demo-content">
+            <div class="demo-item">
+                <h3>1. 动态添加元素</h3>
+                <button onclick="addDynamicElement()">添加动态元素</button>
+                <div id="dynamic-container" style="margin-top: 10px;">
+                    <!-- 动态元素将添加到这里 -->
+                </div>
+            </div>
+            
+            <div class="demo-item">
+                <h3>2. 动态修改内容</h3>
+                <button onclick="modifyDynamicContent()">修改动态内容</button>
+                <div id="modify-container" style="margin-top: 10px; padding: 10px; background-color: #fff3e0;">
+                    这是一段可以动态修改的内容
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📋 操作日志</h2>
+        <div id="log-container" class="log-container">
+            <div class="log-entry info">ℹ️ 页面已加载，脚本已初始化。请打开浏览器控制台开始测试。</div>
+        </div>
+    </div>
+    
+    <!-- 引入用户操作记录脚本 -->
+    <script src="/user-operation-tracker.js"></script>
+    
+    <script>
+        // 自定义日志函数
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // 动态添加元素
+        function addDynamicElement() {
+            const container = document.getElementById('dynamic-container');
+            const newElement = document.createElement('div');
+            newElement.className = 'demo-item';
+            newElement.innerHTML = `
+                <div style="padding: 10px; background-color: #e8f5e8; border: 1px solid #c8e6c9; border-radius: 4px; margin: 5px 0;">
+                    动态添加的元素 - ${new Date().toLocaleTimeString()}
+                    <button onclick="this.parentElement.remove()" style="margin-left: 10px; padding: 5px 10px; font-size: 12px;">删除</button>
+                </div>
+            `;
+            container.appendChild(newElement);
+            log('动态元素已添加', 'success');
+        }
+        
+        // 动态修改内容
+        function modifyDynamicContent() {
+            const container = document.getElementById('modify-container');
+            container.textContent = `内容已修改 - ${new Date().toLocaleTimeString()}`;
+            log('内容已修改', 'success');
+        }
+        
+        // 监听脚本事件
+        document.addEventListener('DOMContentLoaded', function() {
+            log('✅ 页面已加载完成', 'success');
+            log('📌 脚本已初始化，请打开浏览器控制台开始测试', 'info');
+            log('💡 可用命令: userOperationTracker.start(), userOperationTracker.stop(), userOperationTracker.exportData(), userOperationTracker.playback(), userOperationTracker.destroy()', 'info');
+        });
+        
+        // 监听窗口卸载事件
+        window.addEventListener('beforeunload', function() {
+            if (window.userOperationTracker) {
+                window.userOperationTracker.stop();
+                log('⚠️  页面即将卸载，脚本已自动停止记录', 'warning');
+            }
+        });
+    </script>
+</body>
+</html>

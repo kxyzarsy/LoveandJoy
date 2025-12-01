@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-11-29T23:10:41.244Z",
+  "deletedData": {
+    "localStorage": 4,
+    "database": 0,
+    "total": 4
+  },
+  "retainedData": {
+    "database": 0,
+    "total": 0
+  },
+  "errors": [],
+  "cleanupDetails": {
+    "localStorage": [
+      "精确匹配: posts",
+      "精确匹配: users",
+      "精确匹配: blogDraft",
+      "匹配模式: usernameModify_* - 通配符匹配"
+    ]
+  },
+  "summary": {
+    "totalDeleted": 4,
+    "totalRetained": 0,
+    "status": "success"
+  }
+}

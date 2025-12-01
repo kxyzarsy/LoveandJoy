@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户模型
+model User {
+  id                Int      @id @default(autoincrement())
+  name              String
+  email             String   @unique
+  password          String
+  usernameId        String   @unique
+  avatar            String?
+  backgroundImage   String?
+  bio               String?
+  lastUsernameChange DateTime?
+  lastLoginAt       DateTime?
+  role              String   @default("user")
+  posts             Post[]
+  comments          Comment[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// 分类模型
+model Category {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  slug  String  @unique
+  posts Post[]
+}
+
+// 文章模型
+model Post {
+  id         Int        @id @default(autoincrement())
+  title      String
+  excerpt    String
+  content    String
+  image      String?
+  readTime   Int?
+  author     User       @relation(fields: [authorId], references: [id])
+  authorId   Int
+  category   Category   @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  comments   Comment[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+// 评论模型
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    Int
+  parentId  Int?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 管理员秘钥模型
+model AdminSecret {
+  id          Int               @id @default(autoincrement())
+  secretKey   String            @unique
+  createdAt   DateTime          @default(now())
+  expiresAt   DateTime
+  isActive    Boolean           @default(true)
+  updatedBy   Int?
+  updatedAt   DateTime          @updatedAt
+  updateLogs  SecretUpdateLog[]
+}
+
+// 登录日志模型
+model LoginLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  username    String
+  ipAddress   String
+  userAgent   String
+  isSuccess   Boolean
+  errorMessage String?
+  createdAt   DateTime @default(now())
+}
+
+// 秘钥更新日志模型
+model SecretUpdateLog {
+  id          Int         @id @default(autoincrement())
+  secretId    Int
+  secret      AdminSecret @relation(fields: [secretId], references: [id])
+  updatedBy   Int?
+  action      String   // 'create', 'update', 'expire'
+  oldSecret   String?
+  newSecret   String?
+  createdAt   DateTime @default(now())
+}

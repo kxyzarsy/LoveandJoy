@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录状态持久化测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .storage-item {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录状态持久化测试</h1>
+    <p>本测试用于验证登录状态持久化修复是否有效。</p>
+
+    <div class="test-section">
+        <h2>1. 本地存储状态检查</h2>
+        <div id="storage-status"></div>
+        <button onclick="checkStorage()">检查存储状态</button>
+    </div>
+
+    <div class="test-section">
+        <h2>2. 模拟登录测试</h2>
+        <p>点击下方按钮模拟登录，然后刷新页面，检查登录状态是否保持。</p>
+        <button onclick="simulateLogin()">模拟登录</button>
+        <button onclick="simulateLogout()">模拟退出</button>
+        <div id="login-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. 页面刷新测试</h2>
+        <p>1. 点击"模拟登录"按钮</p>
+        <p>2. 刷新页面（F5或浏览器刷新按钮）</p>
+        <p>3. 检查"本地存储状态"，确认登录状态仍然存在</p>
+        <div class="info">
+            <strong>预期结果：</strong>刷新页面后，登录状态应保持不变，localStorage中应包含isLoggedIn和user数据。
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. 跨标签页测试</h2>
+        <p>1. 在当前标签页点击"模拟登录"按钮</p>
+        <p>2. 打开一个新的浏览器标签页，访问同一页面</p>
+        <p>3. 检查新标签页中的"本地存储状态"</p>
+        <div class="info">
+            <strong>预期结果：</strong>新标签页应显示相同的登录状态，localStorage数据在标签页间共享。
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. 浏览器重启测试</h2>
+        <p>1. 点击"模拟登录"按钮</p>
+        <p>2. 关闭浏览器</p>
+        <p>3. 重新打开浏览器，访问同一页面</p>
+        <p>4. 检查"本地存储状态"</p>
+        <div class="info">
+            <strong>预期结果：</strong>浏览器重启后，登录状态应保持不变，localStorage数据持久化存储。
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时自动检查存储状态
+        window.onload = function() {
+            checkStorage();
+        };
+
+        // 检查存储状态
+        function checkStorage() {
+            const storageStatus = document.getElementById('storage-status');
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const user = localStorage.getItem('user');
+            
+            let html = '<h3>本地存储内容：</h3>';
+            
+            // 列出所有localStorage项
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                html += `<div class="storage-item"><strong>${key}:</strong> ${value}</div>`;
+            }
+            
+            html += '<h3>登录状态分析：</h3>';
+            
+            if (isLoggedIn === 'true' && user) {
+                html += '<div class="success">✅ 登录状态已保存，localStorage中包含完整的登录信息</div>';
+                html += `<div class="info">用户信息：${user}</div>`;
+            } else if (isLoggedIn === 'true' && !user) {
+                html += '<div class="error">❌ 登录状态已保存，但缺少用户信息</div>';
+            } else if (!isLoggedIn && user) {
+                html += '<div class="error">❌ 存在用户信息，但登录状态未保存</div>';
+            } else {
+                html += '<div class="info">🔍 未检测到登录状态，localStorage中没有登录相关数据</div>';
+            }
+            
+            storageStatus.innerHTML = html;
+        }
+
+        // 模拟登录
+        function simulateLogin() {
+            const loginStatus = document.getElementById('login-status');
+            
+            // 保存登录状态到localStorage
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            // 设置用户数据
+            const userData = {
+                id: 1,
+                name: '测试用户',
+                email: 'test@example.com',
+                avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop'
+            };
+            
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            loginStatus.innerHTML = '<div class="success">✅ 模拟登录成功，登录状态已保存到localStorage</div>';
+            
+            // 更新存储状态显示
+            checkStorage();
+        }
+
+        // 模拟退出
+        function simulateLogout() {
+            const loginStatus = document.getElementById('login-status');
+            
+            // 清除登录状态
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('user');
+            
+            loginStatus.innerHTML = '<div class="success">✅ 模拟退出成功，登录状态已清除</div>';
+            
+            // 更新存储状态显示
+            checkStorage();
+        }
+    </script>
+</body>
+</html>

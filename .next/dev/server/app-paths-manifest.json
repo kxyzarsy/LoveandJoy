@@ -1,0 +1,7 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/all-posts/page": "app/all-posts/page.js",
+  "/api/footer-config/route": "app/api/footer-config/route.js",
+  "/api/posts/route": "app/api/posts/route.js",
+  "/page": "app/page.js"
+}

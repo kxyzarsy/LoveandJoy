@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `User` ADD COLUMN `backgroundImage` VARCHAR(191) NULL, ADD COLUMN `lastLoginAt` DATETIME(3) NULL, ADD COLUMN `lastUsernameChange` DATETIME(3) NULL, ADD COLUMN `role` VARCHAR(191) NOT NULL DEFAULT 'user', ADD COLUMN `usernameId` VARCHAR(191) NOT NULL, ADD UNIQUE INDEX `User_usernameId_key`(`usernameId`);

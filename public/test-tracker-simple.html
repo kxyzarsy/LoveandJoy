@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户操作记录脚本 - 简单测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #008CBA;
+        }
+        button.secondary:hover {
+            background-color: #007B9E;
+        }
+        button.danger {
+            background-color: #f44336;
+        }
+        button.danger:hover {
+            background-color: #da190b;
+        }
+        .log-container {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-entry.info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        .log-entry.success {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        .log-entry.error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .log-entry.warning {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .test-result.pass {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+        }
+        .test-result.fail {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 用户操作记录脚本 - 简单测试</h1>
+    
+    <div class="container">
+        <h2>💡 测试说明</h2>
+        <p>本页面用于简单测试用户操作记录脚本的核心功能。页面会自动运行一系列测试，测试结果将显示在下方。</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎮 测试控制</h2>
+        <button onclick="runAllTests()">运行所有测试</button>
+        <button onclick="clearLogs()">清除日志</button>
+        <button onclick="window.userOperationTracker.destroy()">销毁脚本</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>📋 测试日志</h2>
+        <div id="log-container" class="log-container">
+            <div class="log-entry info">ℹ️ 页面已加载，脚本已初始化。点击"运行所有测试"按钮开始测试。</div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>✅ 测试结果</h2>
+        <div id="test-result" class="test-result">
+            等待测试运行...
+        </div>
+    </div>
+    
+    <!-- 测试元素 -->
+    <div class="test-section" style="display: none;">
+        <h2>🔍 测试元素（隐藏）</h2>
+        <button id="test-btn1" class="test-btn">测试按钮1</button>
+        <button id="test-btn2" class="test-btn">测试按钮2</button>
+        <input type="text" id="test-input" class="test-input" placeholder="测试输入框">
+        <div id="test-div" class="test-div">测试div元素</div>
+    </div>
+    
+    <!-- 引入用户操作记录脚本 -->
+    <script src="/user-operation-tracker.js"></script>
+    
+    <script>
+        // 测试结果
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            tests: []
+        };
+        
+        // 自定义日志函数
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // 清除日志
+        function clearLogs() {
+            const logContainer = document.getElementById('log-container');
+            logContainer.innerHTML = '<div class="log-entry info">ℹ️ 日志已清除。</div>';
+            testResults = {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                tests: []
+            };
+            updateTestResult();
+        }
+        
+        // 更新测试结果显示
+        function updateTestResult() {
+            const resultDiv = document.getElementById('test-result');
+            const percentage = testResults.total > 0 ? Math.round((testResults.passed / testResults.total) * 100) : 0;
+            
+            let resultText = `测试完成：${testResults.passed}/${testResults.total} 个测试通过 (${percentage}%)`;
+            let resultClass = 'pass';
+            
+            if (testResults.failed > 0) {
+                resultClass = 'fail';
+            }
+            
+            resultDiv.className = `test-result ${resultClass}`;
+            resultDiv.textContent = resultText;
+        }
+        
+        // 运行单个测试
+        async function runTest(testName, testFunction) {
+            testResults.total++;
+            log(`📌 开始测试：${testName}`);
+            
+            try {
+                await testFunction();
+                log(`✅ 测试通过：${testName}`);
+                testResults.passed++;
+                testResults.tests.push({ name: testName, status: 'pass' });
+            } catch (error) {
+                log(`❌ 测试失败：${testName} - ${error.message}`);
+                testResults.failed++;
+                testResults.tests.push({ name: testName, status: 'fail', error: error.message });
+            }
+            
+            updateTestResult();
+        }
+        
+        // 测试1：脚本初始化
+        async function testScriptInitialization() {
+            if (typeof window.userOperationTracker === 'undefined') {
+                throw new Error('脚本未初始化');
+            }
+            
+            if (typeof window.userOperationTracker.start !== 'function') {
+                throw new Error('缺少start方法');
+            }
+            
+            if (typeof window.userOperationTracker.stop !== 'function') {
+                throw new Error('缺少stop方法');
+            }
+            
+            if (typeof window.userOperationTracker.exportData !== 'function') {
+                throw new Error('缺少exportData方法');
+            }
+            
+            if (typeof window.userOperationTracker.playback !== 'function') {
+                throw new Error('缺少playback方法');
+            }
+            
+            if (typeof window.userOperationTracker.destroy !== 'function') {
+                throw new Error('缺少destroy方法');
+            }
+        }
+        
+        // 测试2：开始和停止记录
+        async function testStartStop() {
+            // 开始记录
+            window.userOperationTracker.start();
+            
+            // 模拟点击操作
+            document.getElementById('test-btn1').click();
+            
+            // 停止记录
+            window.userOperationTracker.stop();
+            
+            // 检查是否有操作记录
+            const status = window._userOperationTrackerInstance.getStatus();
+            if (status.operationCount === 0) {
+                throw new Error('没有记录到操作');
+            }
+        }
+        
+        // 测试3：记录点击操作
+        async function testClickRecording() {
+            // 清除之前的数据
+            window.userOperationTracker.clearData();
+            
+            // 开始记录
+            window.userOperationTracker.start();
+            
+            // 模拟点击操作
+            const btn1 = document.getElementById('test-btn1');
+            const btn2 = document.getElementById('test-btn2');
+            
+            btn1.click();
+            btn2.click();
+            btn1.click();
+            
+            // 停止记录
+            window.userOperationTracker.stop();
+            
+            // 检查操作记录
+            const status = window._userOperationTrackerInstance.getStatus();
+            if (status.operationCount < 3) {
+                throw new Error('点击操作记录不完整');
+            }
+        }
+        
+        // 测试4：记录键盘操作
+        async function testKeyboardRecording() {
+            // 清除之前的数据
+            window.userOperationTracker.clearData();
+            
+            // 开始记录
+            window.userOperationTracker.start();
+            
+            // 模拟键盘操作
+            const input = document.getElementById('test-input');
+            input.focus();
+            
+            // 模拟输入文本
+            input.value = 'test';
+            
+            // 触发input事件
+            const inputEvent = new Event('input', { bubbles: true });
+            input.dispatchEvent(inputEvent);
+            
+            // 停止记录
+            window.userOperationTracker.stop();
+            
+            // 检查操作记录
+            const status = window._userOperationTrackerInstance.getStatus();
+            if (status.operationCount === 0) {
+                throw new Error('没有记录到键盘操作');
+            }
+        }
+        
+        // 测试5：清除数据
+        async function testClearData() {
+            // 先记录一些操作
+            window.userOperationTracker.start();
+            document.getElementById('test-btn1').click();
+            window.userOperationTracker.stop();
+            
+            // 检查是否有操作记录
+            let status = window._userOperationTrackerInstance.getStatus();
+            if (status.operationCount === 0) {
+                throw new Error('清除数据测试前没有操作记录');
+            }
+            
+            // 清除数据
+            window.userOperationTracker.clearData();
+            
+            // 检查数据是否已清除
+            status = window._userOperationTrackerInstance.getStatus();
+            if (status.operationCount !== 0) {
+                throw new Error('数据清除失败');
+            }
+        }
+        
+        // 测试6：导出数据
+        async function testExportData() {
+            // 记录一些操作
+            window.userOperationTracker.clearData();
+            window.userOperationTracker.start();
+            document.getElementById('test-btn1').click();
+            window.userOperationTracker.stop();
+            
+            // 导出数据
+            const exportData = window.userOperationTracker.exportData();
+            
+            // 检查导出数据
+            if (!exportData) {
+                throw new Error('导出数据为空');
+            }
+            
+            if (!exportData.metadata || !exportData.operations) {
+                throw new Error('导出数据格式不正确');
+            }
+            
+            if (exportData.operations.length === 0) {
+                throw new Error('导出数据中没有操作记录');
+            }
+        }
+        
+        // 运行所有测试
+        async function runAllTests() {
+            log('🚀 开始运行所有测试...', 'info');
+            
+            // 重置测试结果
+            testResults = {
+                total: 0,
+                passed: 0,
+                failed: 0,
+                tests: []
+            };
+            
+            // 运行测试
+            await runTest('脚本初始化', testScriptInitialization);
+            await runTest('开始和停止记录', testStartStop);
+            await runTest('记录点击操作', testClickRecording);
+            await runTest('记录键盘操作', testKeyboardRecording);
+            await runTest('清除数据', testClearData);
+            await runTest('导出数据', testExportData);
+            
+            log('🎉 所有测试运行完成！', 'success');
+        }
+        
+        // 页面加载完成后自动运行测试
+        window.addEventListener('DOMContentLoaded', function() {
+            log('✅ 页面加载完成，脚本已初始化', 'success');
+            log('📌 5秒后自动开始测试...', 'info');
+            
+            // 5秒后自动运行测试
+            setTimeout(() => {
+                runAllTests();
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+{
+  "metadata": {
+    "testDate": "2025-11-30",
+    "testType": "用户管理API测试",
+    "testEnvironment": "开发环境",
+    "testUrl": "http://localhost:3000",
+    "testResults": {
+      "totalTests": 3,
+      "passedTests": 3,
+      "failedTests": 0,
+      "successRate": 100
+    }
+  },
+  "testCases": [
+    {
+      "id": 1,
+      "name": "获取所有用户 API",
+      "endpoint": "/api/users",
+      "method": "GET",
+      "status": "PASSED",
+      "statusCode": 200,
+      "responseTime": "<100ms",
+      "result": {
+        "userCount": 3,
+        "users": [
+          {
+            "id": 1,
+            "name": "测试用户",
+            "email": "test@example.com",
+            "avatar": "https://via.placeholder.com/100",
+            "bio": "这是一个测试用户",
+            "role": "user",
+            "lastLoginAt": null,
+            "createdAt": "2025-11-28T23:47:05.000Z",
+            "updatedAt": "2025-11-28T23:47:05.000Z"
+          },
+          {
+            "id": 2,
+            "name": "test123",
+            "email": "18955192235@163.com",
+            "avatar": "https://via.placeholder.com/100",
+            "bio": null,
+            "role": "user",
+            "lastLoginAt": null,
+            "createdAt": "2025-11-28T23:51:39.000Z",
+            "updatedAt": "2025-11-28T23:51:39.000Z"
+          },
+          {
+            "id": 4,
+            "name": "测试用户",
+            "email": "test_1764433146191@example.com",
+            "avatar": "https://via.placeholder.com/100",
+            "bio": "这是一个测试用户",
+            "role": "user",
+            "lastLoginAt": null,
+            "createdAt": "2025-11-29T16:19:06.000Z",
+            "updatedAt": "2025-11-29T16:19:06.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "name": "获取单个用户 API",
+      "endpoint": "/api/users/1",
+      "method": "GET",
+      "status": "PASSED",
+      "statusCode": 200,
+      "responseTime": "<50ms",
+      "result": {
+        "user": {
+          "id": 1,
+          "name": "测试用户",
+          "email": "test@example.com",
+          "avatar": "https://via.placeholder.com/100",
+          "bio": "这是一个测试用户",
+          "role": "user",
+          "lastLoginAt": null,
+          "createdAt": "2025-11-28T23:47:05.000Z",
+          "updatedAt": "2025-11-28T23:47:05.000Z"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "创建用户 API",
+      "endpoint": "/api/users",
+      "method": "POST",
+      "status": "PASSED",
+      "statusCode": 201,
+      "responseTime": "<100ms",
+      "requestBody": {
+        "name": "测试用户",
+        "email": "test_1764433233208@example.com",
+        "password": "password123",
+        "avatar": "https://via.placeholder.com/100",
+        "bio": "这是一个测试用户"
+      },
+      "result": {
+        "createdUser": {
+          "id": 5,
+          "name": "测试用户",
+          "email": "test_1764433233208@example.com",
+          "avatar": "https://via.placeholder.com/100",
+          "bio": "这是一个测试用户",
+          "role": "user",
+          "lastLoginAt": null,
+          "createdAt": "2025-11-29T16:20:33.000Z",
+          "updatedAt": "2025-11-29T16:20:33.000Z"
+        }
+      }
+    }
+  ],
+  "conclusion": {
+    "status": "SUCCESS",
+    "message": "所有测试用例均通过，用户管理API功能正常。",
+    "recommendations": [
+      "继续保持当前的API设计和实现",
+      "定期进行API测试，确保功能稳定性",
+      "考虑添加更多的API测试用例，覆盖更多场景"
+    ]
+  }
+}

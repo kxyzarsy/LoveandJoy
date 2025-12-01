@@ -1,0 +1,3 @@
+module.exports=[23288,a=>{"use strict";var b=a.i(87924),c=a.i(72131);function d(){return(0,c.useEffect)(()=>{throw Error("测试500错误页面")},[]),(0,b.jsx)("div",{className:"min-h-screen bg-gray-50 flex items-center justify-center",children:(0,b.jsx)("h1",{className:"text-2xl font-bold text-gray-900",children:"测试错误页面"})})}a.s(["default",()=>d])}];
+
+//# sourceMappingURL=src_app_test-error_page_tsx_1d33a8c9._.js.map

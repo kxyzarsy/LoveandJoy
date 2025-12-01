@@ -1,0 +1,3 @@
+{
+  "/api/send-admin-credentials/route": "app/api/send-admin-credentials/route.js"
+}

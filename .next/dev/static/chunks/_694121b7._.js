@@ -1,0 +1,2334 @@
+(globalThis.TURBOPACK || (globalThis.TURBOPACK = [])).push([typeof document === "object" ? document.currentScript : undefined,
+"[project]/src/utils/error-handler.ts [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * 统一错误处理工具
+ * 用于在整个应用中实现一致的错误捕获、处理和返回机制
+ */ // 基础错误代码枚举
+__turbopack_context__.s([
+    "AppError",
+    ()=>AppError,
+    "ErrorCode",
+    ()=>ErrorCode,
+    "createErrorResponse",
+    ()=>createErrorResponse,
+    "handleApiError",
+    ()=>handleApiError,
+    "handleDatabaseError",
+    ()=>handleDatabaseError,
+    "handleValidationError",
+    ()=>handleValidationError
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+var ErrorCode = /*#__PURE__*/ function(ErrorCode) {
+    // 通用错误
+    ErrorCode["INTERNAL_SERVER_ERROR"] = "INTERNAL_SERVER_ERROR";
+    ErrorCode["BAD_REQUEST"] = "BAD_REQUEST";
+    ErrorCode["NOT_FOUND"] = "NOT_FOUND";
+    ErrorCode["UNAUTHORIZED"] = "UNAUTHORIZED";
+    ErrorCode["FORBIDDEN"] = "FORBIDDEN";
+    ErrorCode["CONFLICT"] = "CONFLICT";
+    ErrorCode["VALIDATION_ERROR"] = "VALIDATION_ERROR";
+    ErrorCode["NETWORK_ERROR"] = "NETWORK_ERROR";
+    ErrorCode["TIMEOUT_ERROR"] = "TIMEOUT_ERROR";
+    ErrorCode["SERVICE_UNAVAILABLE"] = "SERVICE_UNAVAILABLE";
+    ErrorCode["RATE_LIMIT_EXCEEDED"] = "RATE_LIMIT_EXCEEDED";
+    ErrorCode["UNPROCESSABLE_ENTITY"] = "UNPROCESSABLE_ENTITY";
+    ErrorCode["TOO_MANY_REQUESTS"] = "TOO_MANY_REQUESTS";
+    // 认证相关
+    ErrorCode["AUTHENTICATION_ERROR"] = "AUTHENTICATION_ERROR";
+    ErrorCode["AUTHORIZATION_ERROR"] = "AUTHORIZATION_ERROR";
+    ErrorCode["TOKEN_ERROR"] = "TOKEN_ERROR";
+    ErrorCode["SESSION_ERROR"] = "SESSION_ERROR";
+    // 数据库相关
+    ErrorCode["DATABASE_ERROR"] = "DATABASE_ERROR";
+    ErrorCode["TRANSACTION_ERROR"] = "TRANSACTION_ERROR";
+    ErrorCode["CONSTRAINT_ERROR"] = "CONSTRAINT_ERROR";
+    ErrorCode["FOREIGN_KEY_ERROR"] = "FOREIGN_KEY_ERROR";
+    ErrorCode["UNIQUE_CONSTRAINT_ERROR"] = "UNIQUE_CONSTRAINT_ERROR";
+    // 业务相关
+    ErrorCode["USER_ERROR"] = "USER_ERROR";
+    ErrorCode["POST_ERROR"] = "POST_ERROR";
+    ErrorCode["CATEGORY_ERROR"] = "CATEGORY_ERROR";
+    ErrorCode["COMMENT_ERROR"] = "COMMENT_ERROR";
+    // 安全相关
+    ErrorCode["SECURITY_ERROR"] = "SECURITY_ERROR";
+    ErrorCode["VALIDATION_FAILED"] = "VALIDATION_FAILED";
+    return ErrorCode;
+}({});
+class AppError extends Error {
+    code;
+    details;
+    requestId;
+    constructor(code, message, details, requestId){
+        super(message), this.code = code, this.details = details, this.requestId = requestId;
+        this.name = 'AppError';
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+// 生成唯一请求ID
+const generateRequestId = ()=>{
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+const createErrorResponse = (error, requestId)=>{
+    const timestamp = new Date().toISOString();
+    const reqId = requestId || generateRequestId();
+    if (error instanceof AppError) {
+        return {
+            success: false,
+            error: {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                timestamp,
+                requestId: error.requestId || reqId
+            }
+        };
+    }
+    // 处理未知错误
+    return {
+        success: false,
+        error: {
+            code: "INTERNAL_SERVER_ERROR",
+            message: error.message || 'An unexpected error occurred',
+            details: ("TURBOPACK compile-time truthy", 1) ? error.stack : "TURBOPACK unreachable",
+            timestamp,
+            requestId: reqId
+        }
+    };
+};
+const handleApiError = async (fn, requestId)=>{
+    try {
+        return await fn();
+    } catch (error) {
+        const errorResponse = createErrorResponse(error, requestId);
+        // 根据错误代码设置HTTP状态码
+        const statusCode = getStatusCodeForError(errorResponse.error.code);
+        return new Response(JSON.stringify(errorResponse), {
+            status: statusCode,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Request-ID': errorResponse.error.requestId
+            }
+        });
+    }
+};
+// 获取错误对应的HTTP状态码
+const getStatusCodeForError = (code)=>{
+    const statusMap = {
+        ["BAD_REQUEST"]: 400,
+        ["NOT_FOUND"]: 404,
+        ["UNAUTHORIZED"]: 401,
+        ["FORBIDDEN"]: 403,
+        ["CONFLICT"]: 409,
+        ["VALIDATION_ERROR"]: 400,
+        ["VALIDATION_FAILED"]: 400,
+        ["NETWORK_ERROR"]: 503,
+        ["TIMEOUT_ERROR"]: 504,
+        ["SERVICE_UNAVAILABLE"]: 503,
+        ["RATE_LIMIT_EXCEEDED"]: 429,
+        ["UNPROCESSABLE_ENTITY"]: 422,
+        ["TOO_MANY_REQUESTS"]: 429,
+        ["AUTHENTICATION_ERROR"]: 401,
+        ["AUTHORIZATION_ERROR"]: 403,
+        ["TOKEN_ERROR"]: 401,
+        ["SESSION_ERROR"]: 401,
+        ["DATABASE_ERROR"]: 500,
+        ["TRANSACTION_ERROR"]: 500,
+        ["CONSTRAINT_ERROR"]: 400,
+        ["FOREIGN_KEY_ERROR"]: 400,
+        ["UNIQUE_CONSTRAINT_ERROR"]: 409,
+        ["USER_ERROR"]: 400,
+        ["POST_ERROR"]: 400,
+        ["CATEGORY_ERROR"]: 400,
+        ["COMMENT_ERROR"]: 400,
+        ["SECURITY_ERROR"]: 403,
+        ["INTERNAL_SERVER_ERROR"]: 500
+    };
+    return statusMap[code] || 500;
+};
+const handleValidationError = (errors)=>{
+    return new AppError("VALIDATION_ERROR", 'Validation failed', {
+        errors
+    });
+};
+const handleDatabaseError = (error)=>{
+    let code = "DATABASE_ERROR";
+    let message = 'Database operation failed';
+    // 根据错误信息识别具体错误类型
+    if (error.code) {
+        switch(error.code){
+            case 'ER_DUP_ENTRY':
+                code = "UNIQUE_CONSTRAINT_ERROR";
+                message = 'Duplicate entry';
+                break;
+            case 'ER_NO_REFERENCED_ROW_2':
+            case 'ER_ROW_IS_REFERENCED_2':
+                code = "FOREIGN_KEY_ERROR";
+                message = 'Foreign key constraint violation';
+                break;
+            case 'ER_BAD_NULL_ERROR':
+                code = "CONSTRAINT_ERROR";
+                message = 'Not null constraint violation';
+                break;
+            default:
+                break;
+        }
+    }
+    return new AppError(code, message, ("TURBOPACK compile-time truthy", 1) ? error : "TURBOPACK unreachable");
+};
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/utils/security-logger.ts [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * 安全日志记录工具
+ * 用于记录关键操作和安全事件，支持分级存储和定期备份
+ */ // 日志级别枚举
+__turbopack_context__.s([
+    "LogLevel",
+    ()=>LogLevel,
+    "LogType",
+    ()=>LogType,
+    "SecurityLogger",
+    ()=>SecurityLogger,
+    "securityLogger",
+    ()=>securityLogger
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+var LogLevel = /*#__PURE__*/ function(LogLevel) {
+    LogLevel["DEBUG"] = "DEBUG";
+    LogLevel["INFO"] = "INFO";
+    LogLevel["WARN"] = "WARN";
+    LogLevel["ERROR"] = "ERROR";
+    LogLevel["CRITICAL"] = "CRITICAL";
+    LogLevel["SECURITY"] = "SECURITY";
+    return LogLevel;
+}({});
+var LogType = /*#__PURE__*/ function(LogType) {
+    LogType["AUTHENTICATION"] = "AUTHENTICATION";
+    LogType["AUTHORIZATION"] = "AUTHORIZATION";
+    LogType["USER_ACTION"] = "USER_ACTION";
+    LogType["SYSTEM_EVENT"] = "SYSTEM_EVENT";
+    LogType["SECURITY_VIOLATION"] = "SECURITY_VIOLATION";
+    LogType["DATA_ACCESS"] = "DATA_ACCESS";
+    LogType["API_CALL"] = "API_CALL";
+    LogType["DATABASE_OPERATION"] = "DATABASE_OPERATION";
+    LogType["VALIDATION_ERROR"] = "VALIDATION_ERROR";
+    return LogType;
+}({});
+// 默认配置
+const DEFAULT_CONFIG = {
+    logLevel: "INFO",
+    maxFileSize: 10 * 1024 * 1024,
+    backupCount: 5,
+    logDirectory: 'logs',
+    enableConsoleLogging: true,
+    enableFileLogging: true
+};
+// 生成唯一日志ID
+const generateLogId = ()=>{
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+};
+// 检查日志级别
+const shouldLog = (level, configLevel)=>{
+    const levels = [
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "CRITICAL",
+        "SECURITY"
+    ];
+    return levels.indexOf(level) >= levels.indexOf(configLevel);
+};
+// 格式化日志消息
+const formatLogMessage = (log)=>{
+    const baseLog = `${log.timestamp} [${log.level}] [${log.type}] [${log.action}] [${log.status}]`;
+    const userInfo = log.userId ? ` [User: ${log.userId} (${log.username || 'N/A'})]` : '';
+    const requestInfo = log.requestId ? ` [Request: ${log.requestId}]` : '';
+    const resourceInfo = log.resource ? ` [Resource: ${log.resource}]` : '';
+    const ipInfo = ` [IP: ${log.ipAddress}]`;
+    const details = log.details ? ` Details: ${JSON.stringify(log.details)}` : '';
+    return `${baseLog}${userInfo}${requestInfo}${resourceInfo}${ipInfo} - ${log.message}${details}`;
+};
+class SecurityLogger {
+    config;
+    logQueue = [];
+    flushInterval = null;
+    constructor(config){
+        this.config = {
+            ...DEFAULT_CONFIG,
+            ...config
+        };
+        // 初始化日志目录
+        this.initLogDirectory();
+        // 设置定期刷新队列
+        this.flushInterval = setInterval(()=>{
+            this.flushLogQueue();
+        }, 5000); // 每5秒刷新一次
+    }
+    initLogDirectory() {
+        if (this.config.enableFileLogging) {
+            try {
+                const fs = (()=>{
+                    const e = new Error("Cannot find module 'fs'");
+                    e.code = 'MODULE_NOT_FOUND';
+                    throw e;
+                })();
+                const path = __turbopack_context__.r("[project]/node_modules/next/dist/compiled/path-browserify/index.js [app-client] (ecmascript)");
+                const logDir = path.join(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].cwd(), this.config.logDirectory);
+                if (!fs.existsSync(logDir)) {
+                    fs.mkdirSync(logDir, {
+                        recursive: true
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to initialize log directory:', error);
+            }
+        }
+    }
+    // 记录日志
+    log(level, type, message, options) {
+        if (!shouldLog(level, this.config.logLevel)) {
+            return;
+        }
+        const log = {
+            id: generateLogId(),
+            timestamp: new Date().toISOString(),
+            level,
+            type,
+            message,
+            ...options
+        };
+        // 添加到日志队列
+        this.logQueue.push(log);
+        // 立即输出到控制台
+        if (this.config.enableConsoleLogging) {
+            this.logToConsole(log);
+        }
+        // 如果是高优先级日志，立即写入文件
+        if ([
+            "ERROR",
+            "CRITICAL",
+            "SECURITY"
+        ].includes(level)) {
+            this.flushLogQueue();
+        }
+    }
+    // 记录控制台日志
+    logToConsole(log) {
+        const formattedMessage = formatLogMessage(log);
+        switch(log.level){
+            case "DEBUG":
+                console.debug(formattedMessage);
+                break;
+            case "INFO":
+                console.info(formattedMessage);
+                break;
+            case "WARN":
+                console.warn(formattedMessage);
+                break;
+            case "ERROR":
+            case "SECURITY":
+                console.error(formattedMessage);
+                break;
+            case "CRITICAL":
+                console.error('\x1b[31m' + formattedMessage + '\x1b[0m'); // 红色
+                break;
+            default:
+                console.log(formattedMessage);
+        }
+    }
+    // 记录文件日志
+    async logToFile(log) {
+        if (!this.config.enableFileLogging) {
+            return;
+        }
+        try {
+            const fs = (()=>{
+                const e = new Error("Cannot find module 'fs'");
+                e.code = 'MODULE_NOT_FOUND';
+                throw e;
+            })();
+            const path = __turbopack_context__.r("[project]/node_modules/next/dist/compiled/path-browserify/index.js [app-client] (ecmascript)");
+            // 按日期和类型分文件
+            const today = new Date().toISOString().split('T')[0];
+            const logFileName = `${today}-${log.type.toLowerCase()}.log`;
+            const logFilePath = path.join(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].cwd(), this.config.logDirectory, logFileName);
+            const formattedMessage = formatLogMessage(log) + '\n';
+            // 写入文件（追加模式）
+            fs.appendFileSync(logFilePath, formattedMessage, 'utf8');
+            // 检查文件大小，超过则备份
+            this.checkAndRotateLogs(logFilePath);
+        } catch (error) {
+            console.error('Failed to write log to file:', error);
+        }
+    }
+    // 检查并轮换日志文件
+    checkAndRotateLogs(filePath) {
+        try {
+            const fs = (()=>{
+                const e = new Error("Cannot find module 'fs'");
+                e.code = 'MODULE_NOT_FOUND';
+                throw e;
+            })();
+            const path = __turbopack_context__.r("[project]/node_modules/next/dist/compiled/path-browserify/index.js [app-client] (ecmascript)");
+            const stats = fs.statSync(filePath);
+            if (stats.size > this.config.maxFileSize) {
+                // 备份当前文件
+                const backupPath = `${filePath}.${Date.now()}`;
+                fs.renameSync(filePath, backupPath);
+                // 创建新文件
+                fs.writeFileSync(filePath, '', 'utf8');
+                // 清理旧备份
+                this.cleanupOldBackups(path.dirname(filePath), path.basename(filePath));
+            }
+        } catch (error) {
+            console.error('Failed to rotate logs:', error);
+        }
+    }
+    // 清理旧备份文件
+    cleanupOldBackups(directory, baseFileName) {
+        try {
+            const fs = (()=>{
+                const e = new Error("Cannot find module 'fs'");
+                e.code = 'MODULE_NOT_FOUND';
+                throw e;
+            })();
+            const path = __turbopack_context__.r("[project]/node_modules/next/dist/compiled/path-browserify/index.js [app-client] (ecmascript)");
+            // 获取所有备份文件
+            const files = fs.readdirSync(directory).filter((file)=>file.startsWith(baseFileName) && file !== baseFileName).map((file)=>path.join(directory, file)).sort((a, b)=>{
+                return fs.statSync(a).mtime.getTime() - fs.statSync(b).mtime.getTime();
+            });
+            // 删除多余的备份
+            while(files.length > this.config.backupCount){
+                const oldFile = files.shift();
+                if (oldFile) {
+                    fs.unlinkSync(oldFile);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to cleanup old backups:', error);
+        }
+    }
+    // 刷新日志队列
+    flushLogQueue() {
+        if (this.logQueue.length === 0) {
+            return;
+        }
+        // 复制并清空队列
+        const logsToWrite = [
+            ...this.logQueue
+        ];
+        this.logQueue = [];
+        // 写入所有日志
+        logsToWrite.forEach((log)=>{
+            this.logToFile(log).catch((error)=>{
+                console.error('Failed to write log:', error);
+            });
+        });
+    }
+    // 记录认证事件
+    logAuthentication(message, options) {
+        this.log(options.status === 'FAILURE' ? "SECURITY" : "INFO", "AUTHENTICATION", message, options);
+    }
+    // 记录授权事件
+    logAuthorization(message, options) {
+        this.log(options.status === 'FAILURE' ? "SECURITY" : "INFO", "AUTHORIZATION", message, options);
+    }
+    // 记录API调用
+    logApiCall(message, options) {
+        this.log(options.status === 'FAILURE' ? "ERROR" : "INFO", "API_CALL", message, options);
+    }
+    // 记录安全违规
+    logSecurityViolation(message, options) {
+        this.log("SECURITY", "SECURITY_VIOLATION", message, {
+            ...options,
+            status: 'FAILURE'
+        });
+    }
+    // 关闭日志记录器
+    close() {
+        if (this.flushInterval) {
+            clearInterval(this.flushInterval);
+            this.flushInterval = null;
+        }
+        // 刷新剩余日志
+        this.flushLogQueue();
+    }
+}
+const securityLogger = new SecurityLogger();
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/app/page.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>Home
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$utils$2f$error$2d$handler$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/utils/error-handler.ts [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$utils$2f$security$2d$logger$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/utils/security-logger.ts [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+'use client';
+;
+;
+;
+;
+function Home() {
+    _s();
+    // 状态管理
+    const [posts, setPosts] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [isLoading, setIsLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
+    const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    // 从API获取文章数据
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "Home.useEffect": ()=>{
+            const fetchPosts = {
+                "Home.useEffect.fetchPosts": async ()=>{
+                    setIsLoading(true);
+                    try {
+                        // 从API获取文章数据
+                        const response = await fetch('/api/posts');
+                        if (!response.ok) {
+                            throw response;
+                        }
+                        let postsData = await response.json();
+                        // 为没有点赞数的文章添加默认点赞数
+                        postsData = postsData.map({
+                            "Home.useEffect.fetchPosts": (post)=>({
+                                    ...post,
+                                    likes: post.likes || 0
+                                })
+                        }["Home.useEffect.fetchPosts"]);
+                        // 为没有状态的文章添加默认状态为已发布
+                        postsData = postsData.map({
+                            "Home.useEffect.fetchPosts": (post)=>({
+                                    ...post,
+                                    status: post.status || 'published'
+                                })
+                        }["Home.useEffect.fetchPosts"]);
+                        // 只显示已发布的文章
+                        postsData = postsData.filter({
+                            "Home.useEffect.fetchPosts": (post)=>post.status === 'published'
+                        }["Home.useEffect.fetchPosts"]);
+                        // 按点赞量降序排序
+                        postsData.sort({
+                            "Home.useEffect.fetchPosts": (a, b)=>b.likes - a.likes
+                        }["Home.useEffect.fetchPosts"]);
+                        setPosts(postsData);
+                        setError(null);
+                    } catch (error) {
+                        // 处理错误
+                        const errorResponse = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$utils$2f$error$2d$handler$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createErrorResponse"])(error);
+                        setError(errorResponse.error.message);
+                        // 记录日志
+                        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$utils$2f$security$2d$logger$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["securityLogger"].logApiCall('首页文章获取失败', {
+                            ipAddress: 'client-side',
+                            action: 'FETCH_POSTS',
+                            resource: '/api/posts',
+                            status: 'FAILURE',
+                            details: {
+                                error: error instanceof Error ? error.message : 'Unknown error'
+                            }
+                        });
+                    } finally{
+                        setIsLoading(false);
+                    }
+                }
+            }["Home.useEffect.fetchPosts"];
+            // 初始化获取数据
+            fetchPosts();
+            // 每天12点更新数据
+            const now = new Date();
+            const nextNoon = new Date(now);
+            nextNoon.setHours(12, 0, 0, 0);
+            if (now > nextNoon) {
+                nextNoon.setDate(nextNoon.getDate() + 1);
+            }
+            const timeUntilNoon = nextNoon.getTime() - now.getTime();
+            const updateInterval = setTimeout({
+                "Home.useEffect.updateInterval": ()=>{
+                    fetchPosts();
+                    // 之后每天更新一次
+                    setInterval(fetchPosts, 24 * 60 * 60 * 1000);
+                }
+            }["Home.useEffect.updateInterval"], timeUntilNoon);
+            // 清理函数
+            return ({
+                "Home.useEffect": ()=>{
+                    clearTimeout(updateInterval);
+                }
+            })["Home.useEffect"];
+        }
+    }["Home.useEffect"], []);
+    // 加载状态
+    if (isLoading) {
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "flex justify-center items-center py-12",
+            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+            }, void 0, false, {
+                fileName: "[project]/src/app/page.tsx",
+                lineNumber: 116,
+                columnNumber: 9
+            }, this)
+        }, void 0, false, {
+            fileName: "[project]/src/app/page.tsx",
+            lineNumber: 115,
+            columnNumber: 7
+        }, this);
+    }
+    // 错误状态
+    if (error) {
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "bg-white rounded-xl shadow-sm p-8 text-center",
+            children: [
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4",
+                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                        className: "w-8 h-8 text-red-600",
+                        fill: "none",
+                        stroke: "currentColor",
+                        viewBox: "0 0 24 24",
+                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                            strokeLinecap: "round",
+                            strokeLinejoin: "round",
+                            strokeWidth: 2,
+                            d: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/page.tsx",
+                            lineNumber: 127,
+                            columnNumber: 13
+                        }, this)
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/page.tsx",
+                        lineNumber: 126,
+                        columnNumber: 11
+                    }, this)
+                }, void 0, false, {
+                    fileName: "[project]/src/app/page.tsx",
+                    lineNumber: 125,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                    className: "text-2xl font-bold text-gray-800 mb-2",
+                    children: "加载失败"
+                }, void 0, false, {
+                    fileName: "[project]/src/app/page.tsx",
+                    lineNumber: 130,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                    className: "text-gray-600 mb-6",
+                    children: error
+                }, void 0, false, {
+                    fileName: "[project]/src/app/page.tsx",
+                    lineNumber: 131,
+                    columnNumber: 9
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                    onClick: ()=>window.location.reload(),
+                    className: "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors",
+                    children: "重试"
+                }, void 0, false, {
+                    fileName: "[project]/src/app/page.tsx",
+                    lineNumber: 132,
+                    columnNumber: 9
+                }, this)
+            ]
+        }, void 0, true, {
+            fileName: "[project]/src/app/page.tsx",
+            lineNumber: 124,
+            columnNumber: 7
+        }, this);
+    }
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "space-y-12",
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
+                className: "text-center py-12 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-sm",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                        className: "text-4xl md:text-5xl font-bold text-gray-900 mb-4",
+                        children: "我的技术博客"
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/page.tsx",
+                        lineNumber: 146,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-lg text-gray-600 max-w-2xl mx-auto",
+                        children: "分享技术见解、生活感悟和学习心得，记录成长的每一步"
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/page.tsx",
+                        lineNumber: 147,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/app/page.tsx",
+                lineNumber: 145,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex justify-between items-center",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                        className: "text-3xl font-bold text-gray-900",
+                        children: "热门文章"
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/page.tsx",
+                        lineNumber: 154,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                        href: "/all-posts",
+                        className: "text-blue-600 font-medium hover:text-blue-800 transition-colors",
+                        children: "查看全部文章"
+                    }, void 0, false, {
+                        fileName: "[project]/src/app/page.tsx",
+                        lineNumber: 155,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/app/page.tsx",
+                lineNumber: 153,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8",
+                children: posts.slice(0, 3).map((post)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("article", {
+                        className: "bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1",
+                        children: [
+                            post.image && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "relative h-48 overflow-hidden",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                        src: post.image,
+                                        alt: post.title,
+                                        className: "w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/app/page.tsx",
+                                        lineNumber: 173,
+                                        columnNumber: 17
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "absolute top-3 left-3",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                            className: "bg-blue-100 text-blue-800 text-xs font-medium px-3 py-1 rounded-full",
+                                            children: post.category?.name || '未分类'
+                                        }, void 0, false, {
+                                            fileName: "[project]/src/app/page.tsx",
+                                            lineNumber: 179,
+                                            columnNumber: 19
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/app/page.tsx",
+                                        lineNumber: 178,
+                                        columnNumber: 17
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/app/page.tsx",
+                                lineNumber: 172,
+                                columnNumber: 15
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "p-6",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex items-center text-sm text-gray-500 mb-3",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "flex items-center",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                                                        className: "w-4 h-4 mr-1",
+                                                        fill: "currentColor",
+                                                        viewBox: "0 0 20 20",
+                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                                                            fillRule: "evenodd",
+                                                            d: "M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z",
+                                                            clipRule: "evenodd"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/page.tsx",
+                                                            lineNumber: 191,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/page.tsx",
+                                                        lineNumber: 190,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    new Date(post.createdAt).toLocaleDateString()
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/page.tsx",
+                                                lineNumber: 189,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "mx-2",
+                                                children: "•"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/app/page.tsx",
+                                                lineNumber: 195,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "flex items-center",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                                                        className: "w-4 h-4 mr-1",
+                                                        fill: "currentColor",
+                                                        viewBox: "0 0 20 20",
+                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                                                            fillRule: "evenodd",
+                                                            d: "M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z",
+                                                            clipRule: "evenodd"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/page.tsx",
+                                                            lineNumber: 198,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/page.tsx",
+                                                        lineNumber: 197,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    post.author?.name || '未知作者'
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/page.tsx",
+                                                lineNumber: 196,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/app/page.tsx",
+                                        lineNumber: 188,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                        className: "text-xl font-bold text-gray-900 mb-3 line-clamp-2",
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                            href: `/posts/${post.id}`,
+                                            className: "hover:text-blue-600 transition-colors",
+                                            children: post.title
+                                        }, void 0, false, {
+                                            fileName: "[project]/src/app/page.tsx",
+                                            lineNumber: 205,
+                                            columnNumber: 17
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/app/page.tsx",
+                                        lineNumber: 204,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-gray-600 mb-4 line-clamp-3",
+                                        children: post.excerpt
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/app/page.tsx",
+                                        lineNumber: 210,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex justify-between items-center mt-4",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                                href: `/posts/${post.id}`,
+                                                className: "inline-flex items-center text-blue-600 font-medium hover:text-blue-800 transition-colors group",
+                                                children: [
+                                                    "阅读更多",
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                                                        className: "ml-2 h-4 w-4 transition-transform group-hover:translate-x-1",
+                                                        fill: "none",
+                                                        viewBox: "0 0 24 24",
+                                                        stroke: "currentColor",
+                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                                                            strokeLinecap: "round",
+                                                            strokeLinejoin: "round",
+                                                            strokeWidth: 2,
+                                                            d: "M14 5l7 7m0 0l-7 7m7-7H3"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/page.tsx",
+                                                            lineNumber: 219,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/page.tsx",
+                                                        lineNumber: 218,
+                                                        columnNumber: 19
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/page.tsx",
+                                                lineNumber: 213,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                className: "flex items-center text-gray-500",
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                                                        className: "w-4 h-4 mr-1",
+                                                        fill: "currentColor",
+                                                        viewBox: "0 0 24 24",
+                                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                                                            d: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/src/app/page.tsx",
+                                                            lineNumber: 224,
+                                                            columnNumber: 21
+                                                        }, this)
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/page.tsx",
+                                                        lineNumber: 223,
+                                                        columnNumber: 19
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                        children: post.likes
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/app/page.tsx",
+                                                        lineNumber: 226,
+                                                        columnNumber: 19
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
+                                                fileName: "[project]/src/app/page.tsx",
+                                                lineNumber: 222,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/app/page.tsx",
+                                        lineNumber: 212,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/app/page.tsx",
+                                lineNumber: 187,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, post.id, true, {
+                        fileName: "[project]/src/app/page.tsx",
+                        lineNumber: 166,
+                        columnNumber: 11
+                    }, this))
+            }, void 0, false, {
+                fileName: "[project]/src/app/page.tsx",
+                lineNumber: 164,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex justify-center",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                    href: "/all-posts",
+                    className: "inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors",
+                    children: [
+                        "查看全部文章",
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                            className: "ml-2 h-5 w-5",
+                            fill: "none",
+                            viewBox: "0 0 24 24",
+                            stroke: "currentColor",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                                strokeLinecap: "round",
+                                strokeLinejoin: "round",
+                                strokeWidth: 2,
+                                d: "M14 5l7 7m0 0l-7 7m7-7H3"
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/page.tsx",
+                                lineNumber: 242,
+                                columnNumber: 13
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/page.tsx",
+                            lineNumber: 241,
+                            columnNumber: 11
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/app/page.tsx",
+                    lineNumber: 236,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/src/app/page.tsx",
+                lineNumber: 235,
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/src/app/page.tsx",
+        lineNumber: 143,
+        columnNumber: 5
+    }, this);
+}
+_s(Home, "BYr8UjPQAXWyU9Lltv0ySYtRjfw=");
+_c = Home;
+var _c;
+__turbopack_context__.k.register(_c, "Home");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/node_modules/next/dist/shared/lib/router/utils/querystring.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+0 && (module.exports = {
+    assign: null,
+    searchParamsToUrlQuery: null,
+    urlQueryToSearchParams: null
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    assign: function() {
+        return assign;
+    },
+    searchParamsToUrlQuery: function() {
+        return searchParamsToUrlQuery;
+    },
+    urlQueryToSearchParams: function() {
+        return urlQueryToSearchParams;
+    }
+});
+function searchParamsToUrlQuery(searchParams) {
+    const query = {};
+    for (const [key, value] of searchParams.entries()){
+        const existing = query[key];
+        if (typeof existing === 'undefined') {
+            query[key] = value;
+        } else if (Array.isArray(existing)) {
+            existing.push(value);
+        } else {
+            query[key] = [
+                existing,
+                value
+            ];
+        }
+    }
+    return query;
+}
+function stringifyUrlQueryParam(param) {
+    if (typeof param === 'string') {
+        return param;
+    }
+    if (typeof param === 'number' && !isNaN(param) || typeof param === 'boolean') {
+        return String(param);
+    } else {
+        return '';
+    }
+}
+function urlQueryToSearchParams(query) {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)){
+        if (Array.isArray(value)) {
+            for (const item of value){
+                searchParams.append(key, stringifyUrlQueryParam(item));
+            }
+        } else {
+            searchParams.set(key, stringifyUrlQueryParam(value));
+        }
+    }
+    return searchParams;
+}
+function assign(target, ...searchParamsList) {
+    for (const searchParams of searchParamsList){
+        for (const key of searchParams.keys()){
+            target.delete(key);
+        }
+        for (const [key, value] of searchParams.entries()){
+            target.append(key, value);
+        }
+    }
+    return target;
+} //# sourceMappingURL=querystring.js.map
+}),
+"[project]/node_modules/next/dist/shared/lib/router/utils/format-url.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+// Format function modified from nodejs
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+0 && (module.exports = {
+    formatUrl: null,
+    formatWithValidation: null,
+    urlObjectKeys: null
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    formatUrl: function() {
+        return formatUrl;
+    },
+    formatWithValidation: function() {
+        return formatWithValidation;
+    },
+    urlObjectKeys: function() {
+        return urlObjectKeys;
+    }
+});
+const _interop_require_wildcard = __turbopack_context__.r("[project]/node_modules/@swc/helpers/cjs/_interop_require_wildcard.cjs [app-client] (ecmascript)");
+const _querystring = /*#__PURE__*/ _interop_require_wildcard._(__turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/router/utils/querystring.js [app-client] (ecmascript)"));
+const slashedProtocols = /https?|ftp|gopher|file/;
+function formatUrl(urlObj) {
+    let { auth, hostname } = urlObj;
+    let protocol = urlObj.protocol || '';
+    let pathname = urlObj.pathname || '';
+    let hash = urlObj.hash || '';
+    let query = urlObj.query || '';
+    let host = false;
+    auth = auth ? encodeURIComponent(auth).replace(/%3A/i, ':') + '@' : '';
+    if (urlObj.host) {
+        host = auth + urlObj.host;
+    } else if (hostname) {
+        host = auth + (~hostname.indexOf(':') ? `[${hostname}]` : hostname);
+        if (urlObj.port) {
+            host += ':' + urlObj.port;
+        }
+    }
+    if (query && typeof query === 'object') {
+        query = String(_querystring.urlQueryToSearchParams(query));
+    }
+    let search = urlObj.search || query && `?${query}` || '';
+    if (protocol && !protocol.endsWith(':')) protocol += ':';
+    if (urlObj.slashes || (!protocol || slashedProtocols.test(protocol)) && host !== false) {
+        host = '//' + (host || '');
+        if (pathname && pathname[0] !== '/') pathname = '/' + pathname;
+    } else if (!host) {
+        host = '';
+    }
+    if (hash && hash[0] !== '#') hash = '#' + hash;
+    if (search && search[0] !== '?') search = '?' + search;
+    pathname = pathname.replace(/[?#]/g, encodeURIComponent);
+    search = search.replace('#', '%23');
+    return `${protocol}${host}${pathname}${search}${hash}`;
+}
+const urlObjectKeys = [
+    'auth',
+    'hash',
+    'host',
+    'hostname',
+    'href',
+    'path',
+    'pathname',
+    'port',
+    'protocol',
+    'query',
+    'search',
+    'slashes'
+];
+function formatWithValidation(url) {
+    if ("TURBOPACK compile-time truthy", 1) {
+        if (url !== null && typeof url === 'object') {
+            Object.keys(url).forEach((key)=>{
+                if (!urlObjectKeys.includes(key)) {
+                    console.warn(`Unknown key passed via urlObject into url.format: ${key}`);
+                }
+            });
+        }
+    }
+    return formatUrl(url);
+} //# sourceMappingURL=format-url.js.map
+}),
+"[project]/node_modules/next/dist/client/use-merged-ref.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "useMergedRef", {
+    enumerable: true,
+    get: function() {
+        return useMergedRef;
+    }
+});
+const _react = __turbopack_context__.r("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+function useMergedRef(refA, refB) {
+    const cleanupA = (0, _react.useRef)(null);
+    const cleanupB = (0, _react.useRef)(null);
+    // NOTE: In theory, we could skip the wrapping if only one of the refs is non-null.
+    // (this happens often if the user doesn't pass a ref to Link/Form/Image)
+    // But this can cause us to leak a cleanup-ref into user code (previously via `<Link legacyBehavior>`),
+    // and the user might pass that ref into ref-merging library that doesn't support cleanup refs
+    // (because it hasn't been updated for React 19)
+    // which can then cause things to blow up, because a cleanup-returning ref gets called with `null`.
+    // So in practice, it's safer to be defensive and always wrap the ref, even on React 19.
+    return (0, _react.useCallback)((current)=>{
+        if (current === null) {
+            const cleanupFnA = cleanupA.current;
+            if (cleanupFnA) {
+                cleanupA.current = null;
+                cleanupFnA();
+            }
+            const cleanupFnB = cleanupB.current;
+            if (cleanupFnB) {
+                cleanupB.current = null;
+                cleanupFnB();
+            }
+        } else {
+            if (refA) {
+                cleanupA.current = applyRef(refA, current);
+            }
+            if (refB) {
+                cleanupB.current = applyRef(refB, current);
+            }
+        }
+    }, [
+        refA,
+        refB
+    ]);
+}
+function applyRef(refA, current) {
+    if (typeof refA === 'function') {
+        const cleanup = refA(current);
+        if (typeof cleanup === 'function') {
+            return cleanup;
+        } else {
+            return ()=>refA(null);
+        }
+    } else {
+        refA.current = current;
+        return ()=>{
+            refA.current = null;
+        };
+    }
+}
+if ((typeof exports.default === 'function' || typeof exports.default === 'object' && exports.default !== null) && typeof exports.default.__esModule === 'undefined') {
+    Object.defineProperty(exports.default, '__esModule', {
+        value: true
+    });
+    Object.assign(exports.default, exports);
+    module.exports = exports.default;
+} //# sourceMappingURL=use-merged-ref.js.map
+}),
+"[project]/node_modules/next/dist/shared/lib/utils.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+0 && (module.exports = {
+    DecodeError: null,
+    MiddlewareNotFoundError: null,
+    MissingStaticPage: null,
+    NormalizeError: null,
+    PageNotFoundError: null,
+    SP: null,
+    ST: null,
+    WEB_VITALS: null,
+    execOnce: null,
+    getDisplayName: null,
+    getLocationOrigin: null,
+    getURL: null,
+    isAbsoluteUrl: null,
+    isResSent: null,
+    loadGetInitialProps: null,
+    normalizeRepeatedSlashes: null,
+    stringifyError: null
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    DecodeError: function() {
+        return DecodeError;
+    },
+    MiddlewareNotFoundError: function() {
+        return MiddlewareNotFoundError;
+    },
+    MissingStaticPage: function() {
+        return MissingStaticPage;
+    },
+    NormalizeError: function() {
+        return NormalizeError;
+    },
+    PageNotFoundError: function() {
+        return PageNotFoundError;
+    },
+    SP: function() {
+        return SP;
+    },
+    ST: function() {
+        return ST;
+    },
+    WEB_VITALS: function() {
+        return WEB_VITALS;
+    },
+    execOnce: function() {
+        return execOnce;
+    },
+    getDisplayName: function() {
+        return getDisplayName;
+    },
+    getLocationOrigin: function() {
+        return getLocationOrigin;
+    },
+    getURL: function() {
+        return getURL;
+    },
+    isAbsoluteUrl: function() {
+        return isAbsoluteUrl;
+    },
+    isResSent: function() {
+        return isResSent;
+    },
+    loadGetInitialProps: function() {
+        return loadGetInitialProps;
+    },
+    normalizeRepeatedSlashes: function() {
+        return normalizeRepeatedSlashes;
+    },
+    stringifyError: function() {
+        return stringifyError;
+    }
+});
+const WEB_VITALS = [
+    'CLS',
+    'FCP',
+    'FID',
+    'INP',
+    'LCP',
+    'TTFB'
+];
+function execOnce(fn) {
+    let used = false;
+    let result;
+    return (...args)=>{
+        if (!used) {
+            used = true;
+            result = fn(...args);
+        }
+        return result;
+    };
+}
+// Scheme: https://tools.ietf.org/html/rfc3986#section-3.1
+// Absolute URL: https://tools.ietf.org/html/rfc3986#section-4.3
+const ABSOLUTE_URL_REGEX = /^[a-zA-Z][a-zA-Z\d+\-.]*?:/;
+const isAbsoluteUrl = (url)=>ABSOLUTE_URL_REGEX.test(url);
+function getLocationOrigin() {
+    const { protocol, hostname, port } = window.location;
+    return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+}
+function getURL() {
+    const { href } = window.location;
+    const origin = getLocationOrigin();
+    return href.substring(origin.length);
+}
+function getDisplayName(Component) {
+    return typeof Component === 'string' ? Component : Component.displayName || Component.name || 'Unknown';
+}
+function isResSent(res) {
+    return res.finished || res.headersSent;
+}
+function normalizeRepeatedSlashes(url) {
+    const urlParts = url.split('?');
+    const urlNoQuery = urlParts[0];
+    return urlNoQuery // first we replace any non-encoded backslashes with forward
+    // then normalize repeated forward slashes
+    .replace(/\\/g, '/').replace(/\/\/+/g, '/') + (urlParts[1] ? `?${urlParts.slice(1).join('?')}` : '');
+}
+async function loadGetInitialProps(App, ctx) {
+    if ("TURBOPACK compile-time truthy", 1) {
+        if (App.prototype?.getInitialProps) {
+            const message = `"${getDisplayName(App)}.getInitialProps()" is defined as an instance method - visit https://nextjs.org/docs/messages/get-initial-props-as-an-instance-method for more information.`;
+            throw Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
+                value: "E394",
+                enumerable: false,
+                configurable: true
+            });
+        }
+    }
+    // when called from _app `ctx` is nested in `ctx`
+    const res = ctx.res || ctx.ctx && ctx.ctx.res;
+    if (!App.getInitialProps) {
+        if (ctx.ctx && ctx.Component) {
+            // @ts-ignore pageProps default
+            return {
+                pageProps: await loadGetInitialProps(ctx.Component, ctx.ctx)
+            };
+        }
+        return {};
+    }
+    const props = await App.getInitialProps(ctx);
+    if (res && isResSent(res)) {
+        return props;
+    }
+    if (!props) {
+        const message = `"${getDisplayName(App)}.getInitialProps()" should resolve to an object. But found "${props}" instead.`;
+        throw Object.defineProperty(new Error(message), "__NEXT_ERROR_CODE", {
+            value: "E394",
+            enumerable: false,
+            configurable: true
+        });
+    }
+    if ("TURBOPACK compile-time truthy", 1) {
+        if (Object.keys(props).length === 0 && !ctx.ctx) {
+            console.warn(`${getDisplayName(App)} returned an empty object from \`getInitialProps\`. This de-optimizes and prevents automatic static optimization. https://nextjs.org/docs/messages/empty-object-getInitialProps`);
+        }
+    }
+    return props;
+}
+const SP = typeof performance !== 'undefined';
+const ST = SP && [
+    'mark',
+    'measure',
+    'getEntriesByName'
+].every((method)=>typeof performance[method] === 'function');
+class DecodeError extends Error {
+}
+class NormalizeError extends Error {
+}
+class PageNotFoundError extends Error {
+    constructor(page){
+        super();
+        this.code = 'ENOENT';
+        this.name = 'PageNotFoundError';
+        this.message = `Cannot find module for page: ${page}`;
+    }
+}
+class MissingStaticPage extends Error {
+    constructor(page, message){
+        super();
+        this.message = `Failed to load static file for page: ${page} ${message}`;
+    }
+}
+class MiddlewareNotFoundError extends Error {
+    constructor(){
+        super();
+        this.code = 'ENOENT';
+        this.message = `Cannot find the middleware module`;
+    }
+}
+function stringifyError(error) {
+    return JSON.stringify({
+        message: error.message,
+        stack: error.stack
+    });
+} //# sourceMappingURL=utils.js.map
+}),
+"[project]/node_modules/next/dist/shared/lib/router/utils/is-local-url.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "isLocalURL", {
+    enumerable: true,
+    get: function() {
+        return isLocalURL;
+    }
+});
+const _utils = __turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/utils.js [app-client] (ecmascript)");
+const _hasbasepath = __turbopack_context__.r("[project]/node_modules/next/dist/client/has-base-path.js [app-client] (ecmascript)");
+function isLocalURL(url) {
+    // prevent a hydration mismatch on href for url with anchor refs
+    if (!(0, _utils.isAbsoluteUrl)(url)) return true;
+    try {
+        // absolute urls can be local if they are on the same origin
+        const locationOrigin = (0, _utils.getLocationOrigin)();
+        const resolved = new URL(url, locationOrigin);
+        return resolved.origin === locationOrigin && (0, _hasbasepath.hasBasePath)(resolved.pathname);
+    } catch (_) {
+        return false;
+    }
+} //# sourceMappingURL=is-local-url.js.map
+}),
+"[project]/node_modules/next/dist/shared/lib/utils/error-once.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "errorOnce", {
+    enumerable: true,
+    get: function() {
+        return errorOnce;
+    }
+});
+let errorOnce = (_)=>{};
+if ("TURBOPACK compile-time truthy", 1) {
+    const errors = new Set();
+    errorOnce = (msg)=>{
+        if (!errors.has(msg)) {
+            console.error(msg);
+        }
+        errors.add(msg);
+    };
+} //# sourceMappingURL=error-once.js.map
+}),
+"[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+"use strict";
+
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+'use client';
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+0 && (module.exports = {
+    default: null,
+    useLinkStatus: null
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    /**
+ * A React component that extends the HTML `<a>` element to provide
+ * [prefetching](https://nextjs.org/docs/app/building-your-application/routing/linking-and-navigating#2-prefetching)
+ * and client-side navigation. This is the primary way to navigate between routes in Next.js.
+ *
+ * @remarks
+ * - Prefetching is only enabled in production.
+ *
+ * @see https://nextjs.org/docs/app/api-reference/components/link
+ */ default: function() {
+        return LinkComponent;
+    },
+    useLinkStatus: function() {
+        return useLinkStatus;
+    }
+});
+const _interop_require_wildcard = __turbopack_context__.r("[project]/node_modules/@swc/helpers/cjs/_interop_require_wildcard.cjs [app-client] (ecmascript)");
+const _jsxruntime = __turbopack_context__.r("[project]/node_modules/next/dist/compiled/react/jsx-runtime.js [app-client] (ecmascript)");
+const _react = /*#__PURE__*/ _interop_require_wildcard._(__turbopack_context__.r("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)"));
+const _formaturl = __turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/router/utils/format-url.js [app-client] (ecmascript)");
+const _approutercontextsharedruntime = __turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/app-router-context.shared-runtime.js [app-client] (ecmascript)");
+const _usemergedref = __turbopack_context__.r("[project]/node_modules/next/dist/client/use-merged-ref.js [app-client] (ecmascript)");
+const _utils = __turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/utils.js [app-client] (ecmascript)");
+const _addbasepath = __turbopack_context__.r("[project]/node_modules/next/dist/client/add-base-path.js [app-client] (ecmascript)");
+const _warnonce = __turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/utils/warn-once.js [app-client] (ecmascript)");
+const _links = __turbopack_context__.r("[project]/node_modules/next/dist/client/components/links.js [app-client] (ecmascript)");
+const _islocalurl = __turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/router/utils/is-local-url.js [app-client] (ecmascript)");
+const _types = __turbopack_context__.r("[project]/node_modules/next/dist/client/components/segment-cache/types.js [app-client] (ecmascript)");
+const _erroronce = __turbopack_context__.r("[project]/node_modules/next/dist/shared/lib/utils/error-once.js [app-client] (ecmascript)");
+function isModifiedEvent(event) {
+    const eventTarget = event.currentTarget;
+    const target = eventTarget.getAttribute('target');
+    return target && target !== '_self' || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || // triggers resource download
+    event.nativeEvent && event.nativeEvent.which === 2;
+}
+function linkClicked(e, href, as, linkInstanceRef, replace, scroll, onNavigate) {
+    if (typeof window !== 'undefined') {
+        const { nodeName } = e.currentTarget;
+        // anchors inside an svg have a lowercase nodeName
+        const isAnchorNodeName = nodeName.toUpperCase() === 'A';
+        if (isAnchorNodeName && isModifiedEvent(e) || e.currentTarget.hasAttribute('download')) {
+            // ignore click for browser’s default behavior
+            return;
+        }
+        if (!(0, _islocalurl.isLocalURL)(href)) {
+            if (replace) {
+                // browser default behavior does not replace the history state
+                // so we need to do it manually
+                e.preventDefault();
+                location.replace(href);
+            }
+            // ignore click for browser’s default behavior
+            return;
+        }
+        e.preventDefault();
+        if (onNavigate) {
+            let isDefaultPrevented = false;
+            onNavigate({
+                preventDefault: ()=>{
+                    isDefaultPrevented = true;
+                }
+            });
+            if (isDefaultPrevented) {
+                return;
+            }
+        }
+        const { dispatchNavigateAction } = __turbopack_context__.r("[project]/node_modules/next/dist/client/components/app-router-instance.js [app-client] (ecmascript)");
+        _react.default.startTransition(()=>{
+            dispatchNavigateAction(as || href, replace ? 'replace' : 'push', scroll ?? true, linkInstanceRef.current);
+        });
+    }
+}
+function formatStringOrUrl(urlObjOrString) {
+    if (typeof urlObjOrString === 'string') {
+        return urlObjOrString;
+    }
+    return (0, _formaturl.formatUrl)(urlObjOrString);
+}
+function LinkComponent(props) {
+    const [linkStatus, setOptimisticLinkStatus] = (0, _react.useOptimistic)(_links.IDLE_LINK_STATUS);
+    let children;
+    const linkInstanceRef = (0, _react.useRef)(null);
+    const { href: hrefProp, as: asProp, children: childrenProp, prefetch: prefetchProp = null, passHref, replace, shallow, scroll, onClick, onMouseEnter: onMouseEnterProp, onTouchStart: onTouchStartProp, legacyBehavior = false, onNavigate, ref: forwardedRef, unstable_dynamicOnHover, ...restProps } = props;
+    children = childrenProp;
+    if (legacyBehavior && (typeof children === 'string' || typeof children === 'number')) {
+        children = /*#__PURE__*/ (0, _jsxruntime.jsx)("a", {
+            children: children
+        });
+    }
+    const router = _react.default.useContext(_approutercontextsharedruntime.AppRouterContext);
+    const prefetchEnabled = prefetchProp !== false;
+    const fetchStrategy = prefetchProp !== false ? getFetchStrategyFromPrefetchProp(prefetchProp) : _types.FetchStrategy.PPR;
+    if ("TURBOPACK compile-time truthy", 1) {
+        function createPropError(args) {
+            return Object.defineProperty(new Error(`Failed prop type: The prop \`${args.key}\` expects a ${args.expected} in \`<Link>\`, but got \`${args.actual}\` instead.` + (typeof window !== 'undefined' ? "\nOpen your browser's console to view the Component stack trace." : '')), "__NEXT_ERROR_CODE", {
+                value: "E319",
+                enumerable: false,
+                configurable: true
+            });
+        }
+        // TypeScript trick for type-guarding:
+        const requiredPropsGuard = {
+            href: true
+        };
+        const requiredProps = Object.keys(requiredPropsGuard);
+        requiredProps.forEach((key)=>{
+            if (key === 'href') {
+                if (props[key] == null || typeof props[key] !== 'string' && typeof props[key] !== 'object') {
+                    throw createPropError({
+                        key,
+                        expected: '`string` or `object`',
+                        actual: props[key] === null ? 'null' : typeof props[key]
+                    });
+                }
+            } else {
+                // TypeScript trick for type-guarding:
+                const _ = key;
+            }
+        });
+        // TypeScript trick for type-guarding:
+        const optionalPropsGuard = {
+            as: true,
+            replace: true,
+            scroll: true,
+            shallow: true,
+            passHref: true,
+            prefetch: true,
+            unstable_dynamicOnHover: true,
+            onClick: true,
+            onMouseEnter: true,
+            onTouchStart: true,
+            legacyBehavior: true,
+            onNavigate: true
+        };
+        const optionalProps = Object.keys(optionalPropsGuard);
+        optionalProps.forEach((key)=>{
+            const valType = typeof props[key];
+            if (key === 'as') {
+                if (props[key] && valType !== 'string' && valType !== 'object') {
+                    throw createPropError({
+                        key,
+                        expected: '`string` or `object`',
+                        actual: valType
+                    });
+                }
+            } else if (key === 'onClick' || key === 'onMouseEnter' || key === 'onTouchStart' || key === 'onNavigate') {
+                if (props[key] && valType !== 'function') {
+                    throw createPropError({
+                        key,
+                        expected: '`function`',
+                        actual: valType
+                    });
+                }
+            } else if (key === 'replace' || key === 'scroll' || key === 'shallow' || key === 'passHref' || key === 'legacyBehavior' || key === 'unstable_dynamicOnHover') {
+                if (props[key] != null && valType !== 'boolean') {
+                    throw createPropError({
+                        key,
+                        expected: '`boolean`',
+                        actual: valType
+                    });
+                }
+            } else if (key === 'prefetch') {
+                if (props[key] != null && valType !== 'boolean' && props[key] !== 'auto') {
+                    throw createPropError({
+                        key,
+                        expected: '`boolean | "auto"`',
+                        actual: valType
+                    });
+                }
+            } else {
+                // TypeScript trick for type-guarding:
+                const _ = key;
+            }
+        });
+    }
+    if ("TURBOPACK compile-time truthy", 1) {
+        if (props.locale) {
+            (0, _warnonce.warnOnce)('The `locale` prop is not supported in `next/link` while using the `app` router. Read more about app router internalization: https://nextjs.org/docs/app/building-your-application/routing/internationalization');
+        }
+        if (!asProp) {
+            let href;
+            if (typeof hrefProp === 'string') {
+                href = hrefProp;
+            } else if (typeof hrefProp === 'object' && typeof hrefProp.pathname === 'string') {
+                href = hrefProp.pathname;
+            }
+            if (href) {
+                const hasDynamicSegment = href.split('/').some((segment)=>segment.startsWith('[') && segment.endsWith(']'));
+                if (hasDynamicSegment) {
+                    throw Object.defineProperty(new Error(`Dynamic href \`${href}\` found in <Link> while using the \`/app\` router, this is not supported. Read more: https://nextjs.org/docs/messages/app-dir-dynamic-href`), "__NEXT_ERROR_CODE", {
+                        value: "E267",
+                        enumerable: false,
+                        configurable: true
+                    });
+                }
+            }
+        }
+    }
+    const { href, as } = _react.default.useMemo({
+        "LinkComponent.useMemo": ()=>{
+            const resolvedHref = formatStringOrUrl(hrefProp);
+            return {
+                href: resolvedHref,
+                as: asProp ? formatStringOrUrl(asProp) : resolvedHref
+            };
+        }
+    }["LinkComponent.useMemo"], [
+        hrefProp,
+        asProp
+    ]);
+    // This will return the first child, if multiple are provided it will throw an error
+    let child;
+    if (legacyBehavior) {
+        if (children?.$$typeof === Symbol.for('react.lazy')) {
+            throw Object.defineProperty(new Error(`\`<Link legacyBehavior>\` received a direct child that is either a Server Component, or JSX that was loaded with React.lazy(). This is not supported. Either remove legacyBehavior, or make the direct child a Client Component that renders the Link's \`<a>\` tag.`), "__NEXT_ERROR_CODE", {
+                value: "E863",
+                enumerable: false,
+                configurable: true
+            });
+        }
+        if ("TURBOPACK compile-time truthy", 1) {
+            if (onClick) {
+                console.warn(`"onClick" was passed to <Link> with \`href\` of \`${hrefProp}\` but "legacyBehavior" was set. The legacy behavior requires onClick be set on the child of next/link`);
+            }
+            if (onMouseEnterProp) {
+                console.warn(`"onMouseEnter" was passed to <Link> with \`href\` of \`${hrefProp}\` but "legacyBehavior" was set. The legacy behavior requires onMouseEnter be set on the child of next/link`);
+            }
+            try {
+                child = _react.default.Children.only(children);
+            } catch (err) {
+                if (!children) {
+                    throw Object.defineProperty(new Error(`No children were passed to <Link> with \`href\` of \`${hrefProp}\` but one child is required https://nextjs.org/docs/messages/link-no-children`), "__NEXT_ERROR_CODE", {
+                        value: "E320",
+                        enumerable: false,
+                        configurable: true
+                    });
+                }
+                throw Object.defineProperty(new Error(`Multiple children were passed to <Link> with \`href\` of \`${hrefProp}\` but only one child is supported https://nextjs.org/docs/messages/link-multiple-children` + (typeof window !== 'undefined' ? " \nOpen your browser's console to view the Component stack trace." : '')), "__NEXT_ERROR_CODE", {
+                    value: "E266",
+                    enumerable: false,
+                    configurable: true
+                });
+            }
+        } else //TURBOPACK unreachable
+        ;
+    } else {
+        if ("TURBOPACK compile-time truthy", 1) {
+            if (children?.type === 'a') {
+                throw Object.defineProperty(new Error('Invalid <Link> with <a> child. Please remove <a> or use <Link legacyBehavior>.\nLearn more: https://nextjs.org/docs/messages/invalid-new-link-with-extra-anchor'), "__NEXT_ERROR_CODE", {
+                    value: "E209",
+                    enumerable: false,
+                    configurable: true
+                });
+            }
+        }
+    }
+    const childRef = legacyBehavior ? child && typeof child === 'object' && child.ref : forwardedRef;
+    // Use a callback ref to attach an IntersectionObserver to the anchor tag on
+    // mount. In the future we will also use this to keep track of all the
+    // currently mounted <Link> instances, e.g. so we can re-prefetch them after
+    // a revalidation or refresh.
+    const observeLinkVisibilityOnMount = _react.default.useCallback({
+        "LinkComponent.useCallback[observeLinkVisibilityOnMount]": (element)=>{
+            if (router !== null) {
+                linkInstanceRef.current = (0, _links.mountLinkInstance)(element, href, router, fetchStrategy, prefetchEnabled, setOptimisticLinkStatus);
+            }
+            return ({
+                "LinkComponent.useCallback[observeLinkVisibilityOnMount]": ()=>{
+                    if (linkInstanceRef.current) {
+                        (0, _links.unmountLinkForCurrentNavigation)(linkInstanceRef.current);
+                        linkInstanceRef.current = null;
+                    }
+                    (0, _links.unmountPrefetchableInstance)(element);
+                }
+            })["LinkComponent.useCallback[observeLinkVisibilityOnMount]"];
+        }
+    }["LinkComponent.useCallback[observeLinkVisibilityOnMount]"], [
+        prefetchEnabled,
+        href,
+        router,
+        fetchStrategy,
+        setOptimisticLinkStatus
+    ]);
+    const mergedRef = (0, _usemergedref.useMergedRef)(observeLinkVisibilityOnMount, childRef);
+    const childProps = {
+        ref: mergedRef,
+        onClick (e) {
+            if ("TURBOPACK compile-time truthy", 1) {
+                if (!e) {
+                    throw Object.defineProperty(new Error(`Component rendered inside next/link has to pass click event to "onClick" prop.`), "__NEXT_ERROR_CODE", {
+                        value: "E312",
+                        enumerable: false,
+                        configurable: true
+                    });
+                }
+            }
+            if (!legacyBehavior && typeof onClick === 'function') {
+                onClick(e);
+            }
+            if (legacyBehavior && child.props && typeof child.props.onClick === 'function') {
+                child.props.onClick(e);
+            }
+            if (!router) {
+                return;
+            }
+            if (e.defaultPrevented) {
+                return;
+            }
+            linkClicked(e, href, as, linkInstanceRef, replace, scroll, onNavigate);
+        },
+        onMouseEnter (e) {
+            if (!legacyBehavior && typeof onMouseEnterProp === 'function') {
+                onMouseEnterProp(e);
+            }
+            if (legacyBehavior && child.props && typeof child.props.onMouseEnter === 'function') {
+                child.props.onMouseEnter(e);
+            }
+            if (!router) {
+                return;
+            }
+            if ("TURBOPACK compile-time truthy", 1) {
+                return;
+            }
+            //TURBOPACK unreachable
+            ;
+            const upgradeToDynamicPrefetch = undefined;
+        },
+        onTouchStart: ("TURBOPACK compile-time falsy", 0) ? "TURBOPACK unreachable" : function onTouchStart(e) {
+            if (!legacyBehavior && typeof onTouchStartProp === 'function') {
+                onTouchStartProp(e);
+            }
+            if (legacyBehavior && child.props && typeof child.props.onTouchStart === 'function') {
+                child.props.onTouchStart(e);
+            }
+            if (!router) {
+                return;
+            }
+            if (!prefetchEnabled) {
+                return;
+            }
+            const upgradeToDynamicPrefetch = unstable_dynamicOnHover === true;
+            (0, _links.onNavigationIntent)(e.currentTarget, upgradeToDynamicPrefetch);
+        }
+    };
+    // If the url is absolute, we can bypass the logic to prepend the basePath.
+    if ((0, _utils.isAbsoluteUrl)(as)) {
+        childProps.href = as;
+    } else if (!legacyBehavior || passHref || child.type === 'a' && !('href' in child.props)) {
+        childProps.href = (0, _addbasepath.addBasePath)(as);
+    }
+    let link;
+    if (legacyBehavior) {
+        if ("TURBOPACK compile-time truthy", 1) {
+            (0, _erroronce.errorOnce)('`legacyBehavior` is deprecated and will be removed in a future ' + 'release. A codemod is available to upgrade your components:\n\n' + 'npx @next/codemod@latest new-link .\n\n' + 'Learn more: https://nextjs.org/docs/app/building-your-application/upgrading/codemods#remove-a-tags-from-link-components');
+        }
+        link = /*#__PURE__*/ _react.default.cloneElement(child, childProps);
+    } else {
+        link = /*#__PURE__*/ (0, _jsxruntime.jsx)("a", {
+            ...restProps,
+            ...childProps,
+            children: children
+        });
+    }
+    return /*#__PURE__*/ (0, _jsxruntime.jsx)(LinkStatusContext.Provider, {
+        value: linkStatus,
+        children: link
+    });
+}
+const LinkStatusContext = /*#__PURE__*/ (0, _react.createContext)(_links.IDLE_LINK_STATUS);
+const useLinkStatus = ()=>{
+    return (0, _react.useContext)(LinkStatusContext);
+};
+function getFetchStrategyFromPrefetchProp(prefetchProp) {
+    if ("TURBOPACK compile-time falsy", 0) //TURBOPACK unreachable
+    ;
+    else {
+        return prefetchProp === null || prefetchProp === 'auto' ? _types.FetchStrategy.PPR : // (although invalid values should've been filtered out by prop validation in dev)
+        _types.FetchStrategy.Full;
+    }
+}
+if ((typeof exports.default === 'function' || typeof exports.default === 'object' && exports.default !== null) && typeof exports.default.__esModule === 'undefined') {
+    Object.defineProperty(exports.default, '__esModule', {
+        value: true
+    });
+    Object.assign(exports.default, exports);
+    module.exports = exports.default;
+} //# sourceMappingURL=link.js.map
+}),
+"[project]/node_modules/next/dist/compiled/path-browserify/index.js [app-client] (ecmascript)", ((__turbopack_context__, module, exports) => {
+
+(function() {
+    "use strict";
+    var e = {
+        114: function(e) {
+            function assertPath(e) {
+                if (typeof e !== "string") {
+                    throw new TypeError("Path must be a string. Received " + JSON.stringify(e));
+                }
+            }
+            function normalizeStringPosix(e, r) {
+                var t = "";
+                var i = 0;
+                var n = -1;
+                var a = 0;
+                var f;
+                for(var l = 0; l <= e.length; ++l){
+                    if (l < e.length) f = e.charCodeAt(l);
+                    else if (f === 47) break;
+                    else f = 47;
+                    if (f === 47) {
+                        if (n === l - 1 || a === 1) {} else if (n !== l - 1 && a === 2) {
+                            if (t.length < 2 || i !== 2 || t.charCodeAt(t.length - 1) !== 46 || t.charCodeAt(t.length - 2) !== 46) {
+                                if (t.length > 2) {
+                                    var s = t.lastIndexOf("/");
+                                    if (s !== t.length - 1) {
+                                        if (s === -1) {
+                                            t = "";
+                                            i = 0;
+                                        } else {
+                                            t = t.slice(0, s);
+                                            i = t.length - 1 - t.lastIndexOf("/");
+                                        }
+                                        n = l;
+                                        a = 0;
+                                        continue;
+                                    }
+                                } else if (t.length === 2 || t.length === 1) {
+                                    t = "";
+                                    i = 0;
+                                    n = l;
+                                    a = 0;
+                                    continue;
+                                }
+                            }
+                            if (r) {
+                                if (t.length > 0) t += "/..";
+                                else t = "..";
+                                i = 2;
+                            }
+                        } else {
+                            if (t.length > 0) t += "/" + e.slice(n + 1, l);
+                            else t = e.slice(n + 1, l);
+                            i = l - n - 1;
+                        }
+                        n = l;
+                        a = 0;
+                    } else if (f === 46 && a !== -1) {
+                        ++a;
+                    } else {
+                        a = -1;
+                    }
+                }
+                return t;
+            }
+            function _format(e, r) {
+                var t = r.dir || r.root;
+                var i = r.base || (r.name || "") + (r.ext || "");
+                if (!t) {
+                    return i;
+                }
+                if (t === r.root) {
+                    return t + i;
+                }
+                return t + e + i;
+            }
+            var r = {
+                resolve: function resolve() {
+                    var e = "";
+                    var r = false;
+                    var t;
+                    for(var i = arguments.length - 1; i >= -1 && !r; i--){
+                        var n;
+                        if (i >= 0) n = arguments[i];
+                        else {
+                            if (t === undefined) t = "";
+                            n = t;
+                        }
+                        assertPath(n);
+                        if (n.length === 0) {
+                            continue;
+                        }
+                        e = n + "/" + e;
+                        r = n.charCodeAt(0) === 47;
+                    }
+                    e = normalizeStringPosix(e, !r);
+                    if (r) {
+                        if (e.length > 0) return "/" + e;
+                        else return "/";
+                    } else if (e.length > 0) {
+                        return e;
+                    } else {
+                        return ".";
+                    }
+                },
+                normalize: function normalize(e) {
+                    assertPath(e);
+                    if (e.length === 0) return ".";
+                    var r = e.charCodeAt(0) === 47;
+                    var t = e.charCodeAt(e.length - 1) === 47;
+                    e = normalizeStringPosix(e, !r);
+                    if (e.length === 0 && !r) e = ".";
+                    if (e.length > 0 && t) e += "/";
+                    if (r) return "/" + e;
+                    return e;
+                },
+                isAbsolute: function isAbsolute(e) {
+                    assertPath(e);
+                    return e.length > 0 && e.charCodeAt(0) === 47;
+                },
+                join: function join() {
+                    if (arguments.length === 0) return ".";
+                    var e;
+                    for(var t = 0; t < arguments.length; ++t){
+                        var i = arguments[t];
+                        assertPath(i);
+                        if (i.length > 0) {
+                            if (e === undefined) e = i;
+                            else e += "/" + i;
+                        }
+                    }
+                    if (e === undefined) return ".";
+                    return r.normalize(e);
+                },
+                relative: function relative(e, t) {
+                    assertPath(e);
+                    assertPath(t);
+                    if (e === t) return "";
+                    e = r.resolve(e);
+                    t = r.resolve(t);
+                    if (e === t) return "";
+                    var i = 1;
+                    for(; i < e.length; ++i){
+                        if (e.charCodeAt(i) !== 47) break;
+                    }
+                    var n = e.length;
+                    var a = n - i;
+                    var f = 1;
+                    for(; f < t.length; ++f){
+                        if (t.charCodeAt(f) !== 47) break;
+                    }
+                    var l = t.length;
+                    var s = l - f;
+                    var o = a < s ? a : s;
+                    var u = -1;
+                    var h = 0;
+                    for(; h <= o; ++h){
+                        if (h === o) {
+                            if (s > o) {
+                                if (t.charCodeAt(f + h) === 47) {
+                                    return t.slice(f + h + 1);
+                                } else if (h === 0) {
+                                    return t.slice(f + h);
+                                }
+                            } else if (a > o) {
+                                if (e.charCodeAt(i + h) === 47) {
+                                    u = h;
+                                } else if (h === 0) {
+                                    u = 0;
+                                }
+                            }
+                            break;
+                        }
+                        var c = e.charCodeAt(i + h);
+                        var v = t.charCodeAt(f + h);
+                        if (c !== v) break;
+                        else if (c === 47) u = h;
+                    }
+                    var g = "";
+                    for(h = i + u + 1; h <= n; ++h){
+                        if (h === n || e.charCodeAt(h) === 47) {
+                            if (g.length === 0) g += "..";
+                            else g += "/..";
+                        }
+                    }
+                    if (g.length > 0) return g + t.slice(f + u);
+                    else {
+                        f += u;
+                        if (t.charCodeAt(f) === 47) ++f;
+                        return t.slice(f);
+                    }
+                },
+                _makeLong: function _makeLong(e) {
+                    return e;
+                },
+                dirname: function dirname(e) {
+                    assertPath(e);
+                    if (e.length === 0) return ".";
+                    var r = e.charCodeAt(0);
+                    var t = r === 47;
+                    var i = -1;
+                    var n = true;
+                    for(var a = e.length - 1; a >= 1; --a){
+                        r = e.charCodeAt(a);
+                        if (r === 47) {
+                            if (!n) {
+                                i = a;
+                                break;
+                            }
+                        } else {
+                            n = false;
+                        }
+                    }
+                    if (i === -1) return t ? "/" : ".";
+                    if (t && i === 1) return "//";
+                    return e.slice(0, i);
+                },
+                basename: function basename(e, r) {
+                    if (r !== undefined && typeof r !== "string") throw new TypeError('"ext" argument must be a string');
+                    assertPath(e);
+                    var t = 0;
+                    var i = -1;
+                    var n = true;
+                    var a;
+                    if (r !== undefined && r.length > 0 && r.length <= e.length) {
+                        if (r.length === e.length && r === e) return "";
+                        var f = r.length - 1;
+                        var l = -1;
+                        for(a = e.length - 1; a >= 0; --a){
+                            var s = e.charCodeAt(a);
+                            if (s === 47) {
+                                if (!n) {
+                                    t = a + 1;
+                                    break;
+                                }
+                            } else {
+                                if (l === -1) {
+                                    n = false;
+                                    l = a + 1;
+                                }
+                                if (f >= 0) {
+                                    if (s === r.charCodeAt(f)) {
+                                        if (--f === -1) {
+                                            i = a;
+                                        }
+                                    } else {
+                                        f = -1;
+                                        i = l;
+                                    }
+                                }
+                            }
+                        }
+                        if (t === i) i = l;
+                        else if (i === -1) i = e.length;
+                        return e.slice(t, i);
+                    } else {
+                        for(a = e.length - 1; a >= 0; --a){
+                            if (e.charCodeAt(a) === 47) {
+                                if (!n) {
+                                    t = a + 1;
+                                    break;
+                                }
+                            } else if (i === -1) {
+                                n = false;
+                                i = a + 1;
+                            }
+                        }
+                        if (i === -1) return "";
+                        return e.slice(t, i);
+                    }
+                },
+                extname: function extname(e) {
+                    assertPath(e);
+                    var r = -1;
+                    var t = 0;
+                    var i = -1;
+                    var n = true;
+                    var a = 0;
+                    for(var f = e.length - 1; f >= 0; --f){
+                        var l = e.charCodeAt(f);
+                        if (l === 47) {
+                            if (!n) {
+                                t = f + 1;
+                                break;
+                            }
+                            continue;
+                        }
+                        if (i === -1) {
+                            n = false;
+                            i = f + 1;
+                        }
+                        if (l === 46) {
+                            if (r === -1) r = f;
+                            else if (a !== 1) a = 1;
+                        } else if (r !== -1) {
+                            a = -1;
+                        }
+                    }
+                    if (r === -1 || i === -1 || a === 0 || a === 1 && r === i - 1 && r === t + 1) {
+                        return "";
+                    }
+                    return e.slice(r, i);
+                },
+                format: function format(e) {
+                    if (e === null || typeof e !== "object") {
+                        throw new TypeError('The "pathObject" argument must be of type Object. Received type ' + typeof e);
+                    }
+                    return _format("/", e);
+                },
+                parse: function parse(e) {
+                    assertPath(e);
+                    var r = {
+                        root: "",
+                        dir: "",
+                        base: "",
+                        ext: "",
+                        name: ""
+                    };
+                    if (e.length === 0) return r;
+                    var t = e.charCodeAt(0);
+                    var i = t === 47;
+                    var n;
+                    if (i) {
+                        r.root = "/";
+                        n = 1;
+                    } else {
+                        n = 0;
+                    }
+                    var a = -1;
+                    var f = 0;
+                    var l = -1;
+                    var s = true;
+                    var o = e.length - 1;
+                    var u = 0;
+                    for(; o >= n; --o){
+                        t = e.charCodeAt(o);
+                        if (t === 47) {
+                            if (!s) {
+                                f = o + 1;
+                                break;
+                            }
+                            continue;
+                        }
+                        if (l === -1) {
+                            s = false;
+                            l = o + 1;
+                        }
+                        if (t === 46) {
+                            if (a === -1) a = o;
+                            else if (u !== 1) u = 1;
+                        } else if (a !== -1) {
+                            u = -1;
+                        }
+                    }
+                    if (a === -1 || l === -1 || u === 0 || u === 1 && a === l - 1 && a === f + 1) {
+                        if (l !== -1) {
+                            if (f === 0 && i) r.base = r.name = e.slice(1, l);
+                            else r.base = r.name = e.slice(f, l);
+                        }
+                    } else {
+                        if (f === 0 && i) {
+                            r.name = e.slice(1, a);
+                            r.base = e.slice(1, l);
+                        } else {
+                            r.name = e.slice(f, a);
+                            r.base = e.slice(f, l);
+                        }
+                        r.ext = e.slice(a, l);
+                    }
+                    if (f > 0) r.dir = e.slice(0, f - 1);
+                    else if (i) r.dir = "/";
+                    return r;
+                },
+                sep: "/",
+                delimiter: ":",
+                win32: null,
+                posix: null
+            };
+            r.posix = r;
+            e.exports = r;
+        }
+    };
+    var r = {};
+    function __nccwpck_require__(t) {
+        var i = r[t];
+        if (i !== undefined) {
+            return i.exports;
+        }
+        var n = r[t] = {
+            exports: {}
+        };
+        var a = true;
+        try {
+            e[t](n, n.exports, __nccwpck_require__);
+            a = false;
+        } finally{
+            if (a) delete r[t];
+        }
+        return n.exports;
+    }
+    if (typeof __nccwpck_require__ !== "undefined") __nccwpck_require__.ab = ("TURBOPACK compile-time value", "/ROOT/node_modules/next/dist/compiled/path-browserify") + "/";
+    var t = __nccwpck_require__(114);
+    module.exports = t;
+})();
+}),
+]);
+
+//# sourceMappingURL=_694121b7._.js.map

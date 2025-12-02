@@ -131,7 +131,7 @@ export default function RegisterPage() {
       newErrors.usernameId = '用户名ID只能包含字母、数字和下划线'
     } else {
       // 用户名ID唯一性检查
-      const isUsernameIdExists = existingUsers.some((user: unknown) => user.usernameId === usernameId)
+      const isUsernameIdExists = existingUsers.some((user: any) => user.usernameId === usernameId)
       if (isUsernameIdExists) {
         newErrors.usernameId = '该用户名ID已被注册'
       }

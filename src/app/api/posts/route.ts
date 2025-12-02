@@ -32,7 +32,7 @@ export async function GET() {
     await connection.end();
     
     // 转换数据格式
-    const posts = (rows as unknown[]).map(post => ({
+    const posts = (rows as unknown[]).map((post: any) => ({
       id: post.id,
       title: post.title,
       excerpt: post.excerpt,
@@ -102,12 +102,12 @@ export async function POST(request: Request) {
       LEFT JOIN user u ON p.authorId = u.id
       LEFT JOIN category c ON p.categoryId = c.id
       WHERE p.id = ?`,
-      [(result as unknown).insertId]
+      [(result as { insertId: number }).insertId]
     );
     
     await connection.end();
     
-    const newPost = (newPostRows as unknown)[0];
+    const newPost = (newPostRows as any[])[0];
     
     // 转换数据格式
     const formattedPost = {
@@ -180,7 +180,7 @@ export async function PUT(request: Request) {
     
     const [result] = await connection.execute(query, params);
     
-    if ((result as unknown).affectedRows === 0) {
+    if ((result as { affectedRows: number }).affectedRows === 0) {
       await connection.end();
       return NextResponse.json({ error: '文章不存在' }, { status: 404 });
     }
@@ -201,7 +201,7 @@ export async function PUT(request: Request) {
     
     await connection.end();
     
-    const updatedPost = (updatedPostRows as unknown)[0];
+    const updatedPost = (updatedPostRows as any[])[0];
     
     // 转换数据格式
     const formattedPost = {
@@ -255,7 +255,7 @@ export async function DELETE(request: Request) {
     const [result] = await connection.execute('DELETE FROM post WHERE id = ?', [postId]);
     await connection.end();
     
-    if ((result as unknown).affectedRows === 0) {
+    if ((result as { affectedRows: number }).affectedRows === 0) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 

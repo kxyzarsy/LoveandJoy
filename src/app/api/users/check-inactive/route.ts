@@ -41,7 +41,7 @@ export async function POST() {
     
     // 记录结束时间和结果
     const endTime = new Date();
-    const affectedRows = (result as unknown).affectedRows || 0;
+    const affectedRows = (result as { affectedRows?: number }).affectedRows || 0;
     console.log(`[${endTime.toISOString()}] 不活跃用户检查完成，共标记 ${affectedRows} 个用户为不活跃状态`);
     
     return NextResponse.json({
@@ -82,9 +82,9 @@ export async function GET() {
     
     await connection.end();
     
-    const inactiveCount = (inactiveCountResult as unknown)[0].inactiveCount;
-    const activeCount = (activeCountResult as unknown)[0].activeCount;
-    const totalCount = (totalCountResult as unknown)[0].totalCount;
+    const inactiveCount = (inactiveCountResult as { inactiveCount: number }[])[0].inactiveCount;
+    const activeCount = (activeCountResult as { activeCount: number }[])[0].activeCount;
+    const totalCount = (totalCountResult as { totalCount: number }[])[0].totalCount;
     
     return NextResponse.json({
       success: true,

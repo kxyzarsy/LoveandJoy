@@ -180,8 +180,8 @@ export const handleDatabaseError = (error: unknown): AppError => {
   let message = 'Database operation failed';
   
   // 根据错误信息识别具体错误类型
-  if (error.code) {
-    switch (error.code) {
+  if ((error as any).code) {
+    switch ((error as any).code) {
       case 'ER_DUP_ENTRY':
         code = ErrorCode.UNIQUE_CONSTRAINT_ERROR;
         message = 'Duplicate entry';

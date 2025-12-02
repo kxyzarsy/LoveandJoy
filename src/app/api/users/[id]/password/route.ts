@@ -62,7 +62,7 @@ export async function PUT(
       [userId]
     );
     
-    const user = (userRows as unknown)[0];
+    const user = (userRows as any[])[0];
     if (!user) {
       await connection.rollback();
       await connection.end();

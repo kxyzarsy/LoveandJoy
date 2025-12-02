@@ -319,9 +319,9 @@ export default function AdminUsersPage() {
           role: string;
           password?: string;
         } = {
-          name: formData.name,
-          email: formData.email,
-          usernameId: formData.usernameId,
+          name: formData.name || '',
+          email: formData.email || '',
+          usernameId: formData.usernameId || '',
           avatar: avatarUrl,
           role: formData.role || 'user'
         };

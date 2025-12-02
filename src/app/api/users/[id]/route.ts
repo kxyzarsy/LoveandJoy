@@ -37,7 +37,7 @@ export async function GET(
       );
       await connection.end();
       
-      const postCount = (postRows as unknown)[0].count;
+      const postCount = (postRows as { count: number }[])[0].count;
       return NextResponse.json({ count: postCount }, { status: 200 });
     }
     
@@ -48,7 +48,7 @@ export async function GET(
     );
     await connection.end();
     
-    const user = (rows as unknown)[0];
+    const user = (rows as any[])[0];
     if (!user) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 });
     }
@@ -167,7 +167,7 @@ export async function PUT(
           [usernameId, id]
         );
         
-        if ((existingUserRows as unknown).length > 0) {
+        if ((existingUserRows as any[]).length > 0) {
           await connection.rollback();
           await connection.end();
           return NextResponse.json({
@@ -183,7 +183,7 @@ export async function PUT(
       );
       
       // 检查是否有行被更新
-      if ((result as unknown).affectedRows === 0) {
+      if ((result as { affectedRows: number }).affectedRows === 0) {
         await connection.rollback();
         await connection.end();
         return NextResponse.json({ error: '用户不存在' }, { status: 404 });
@@ -196,7 +196,7 @@ export async function PUT(
       [id]
     );
     
-    const updatedUser = (updatedUserRows as unknown)[0];
+    const updatedUser = (updatedUserRows as any[])[0];
     
     // 记录操作日志，特别是密码修改
     if (password !== undefined && password) {
@@ -264,7 +264,7 @@ export async function DELETE(
         [id]
       );
       
-      const user = (userRows as unknown)[0];
+      const user = (userRows as any[])[0];
       if (!user) {
         await connection.rollback();
         await connection.end();
@@ -281,7 +281,7 @@ export async function DELETE(
           [id]
         );
         
-        const postCount = (postRows as unknown)[0].postCount;
+        const postCount = (postRows as { postCount: number }[])[0].postCount;
         if (postCount > 0) {
           await connection.rollback();
           await connection.end();
@@ -306,7 +306,7 @@ export async function DELETE(
       await connection.end();
       
       // 处理外键约束错误
-      if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      if ((error as { code?: string }).code === 'ER_ROW_IS_REFERENCED_2') {
         return NextResponse.json({
           error: '删除用户失败',
           message: '该用户还有关联的数据（如帖子），无法直接删除。请先删除这些关联数据，或联系管理员处理。'

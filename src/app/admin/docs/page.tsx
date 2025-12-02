@@ -277,7 +277,7 @@ export default function AdminDocsPage() {
                               const isInline = !match
                               return !isInline ? (
                                 <SyntaxHighlighter
-                                  style={tomorrow as unknown}
+                                  style={tomorrow as any}
                                   language={match[1]}
                                   PreTag="div"
                                   {...props}

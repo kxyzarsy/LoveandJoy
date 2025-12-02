@@ -40,13 +40,13 @@ export async function GET(request: Request) {
     const [rows] = await executeQuery(query, params);
     
     // 计算每个用户的剩余用户名修改时间
-    const usersWithRemainingTime = (rows as unknown[]).map(user => {
+    const usersWithRemainingTime = (rows as unknown[]).map((user: any) => {
       let remainingHours = 0;
       if (user.lastUsernameChange) {
         const lastChangeTime = new Date(user.lastUsernameChange);
         const now = new Date();
         const diffHours = (now.getTime() - lastChangeTime.getTime()) / (1000 * 60 * 60);
-        remainingHours = Math.max(0, Math.ceil(720 - diffHours));
+        remainingHours = Math.max(0, 72 - diffHours);
       }
       return {
         ...user,
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       [usernameId]
     );
     
-    if ((existingUserRows as unknown).length > 0) {
+    if ((existingUserRows as any[]).length > 0) {
       // 记录安全日志
       securityLogger.logSecurityViolation(
         '用户名ID已存在',
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
       [email]
     );
     
-    if ((existingEmailRows as unknown).length > 0) {
+    if ((existingEmailRows as any[]).length > 0) {
       // 记录安全日志
       securityLogger.logSecurityViolation(
         '邮箱已存在',
@@ -138,10 +138,10 @@ export async function POST(request: Request) {
     
     const [newUser] = await executeQuery(
       'SELECT id, name, email, usernameId, avatar, backgroundImage, bio, role, inactive, createdAt, updatedAt FROM user WHERE id = ?',
-      [(result as unknown).insertId]
+      [(result as { insertId: number }).insertId]
     );
     
-    const createdUser = (newUser as unknown)[0];
+    const createdUser = (newUser as any[])[0];
     
     // 记录用户创建日志
     securityLogger.logApiCall(

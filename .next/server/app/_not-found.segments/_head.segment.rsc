@@ -2,6 +2,6 @@
 2:I[25725,["/_next/static/chunks/9f4854b34042a248.js","/_next/static/chunks/247eb132b7f7b574.js"],"ViewportBoundary"]
 4:I[25725,["/_next/static/chunks/9f4854b34042a248.js","/_next/static/chunks/247eb132b7f7b574.js"],"MetadataBoundary"]
 5:"$Sreact.suspense"
-0:{"buildId":"CKaV6fhGJuiVnNyrYI5Be","rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":"$@3"}],["$","div",null,{"hidden":true,"children":["$","$L4",null,{"children":["$","$5",null,{"name":"Next.Metadata","children":"$@6"}]}]}],null]}],"loading":null,"isPartial":false}
+0:{"buildId":"zRWlTaprB-l2z2cvOIHa9","rsc":["$","$1","h",{"children":[["$","meta",null,{"name":"robots","content":"noindex"}],["$","$L2",null,{"children":"$@3"}],["$","div",null,{"hidden":true,"children":["$","$L4",null,{"children":["$","$5",null,{"name":"Next.Metadata","children":"$@6"}]}]}],null]}],"loading":null,"isPartial":false}
 3:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
 6:[["$","title","0",{"children":"个人博客"}],["$","meta","1",{"name":"description","content":"分享我的生活和思考"}]]

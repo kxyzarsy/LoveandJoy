@@ -7,8 +7,8 @@ async function createConnection() {
     host: 'localhost',
     port: 3306,
     user: 'root',
-    password: '123456',
-    database: 'yueblog'
+    password: 'Likeyue@2024',
+    database: 'cloud_yueblog'
   });
 }
 
